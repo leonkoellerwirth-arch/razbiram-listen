@@ -24,6 +24,12 @@ SemVer. The `.listen.json` document shape is versioned separately via
   seams for net-free tests. `razbiram-listen process --audio … --gloss … --out …`
   writes the `.listen.json` and reports alignment coverage. Verified end to end
   (real Whisper tiny + real hub segmentation) in a `slow` test.
+- **M5 — Viewer MVP.** A Vite + vanilla-TypeScript `viewer/` (no upload, no
+  server): loads a `.listen.json` + local audio, karaoke sync (active-word
+  highlight, click-to-seek, auto-scroll), hover popover (lemma · POS · gloss ·
+  CEFR badge on the family colour scale), tempo (0.5×–1.5×), A–B sentence loop,
+  dark mode. Pure sync/CEFR/loader logic is unit-tested; the viewer build + tests
+  are a CI job.
 
 ### Contract
 - `.listen.json` **schemaVersion 1.0.0** — superset of the razbiram-nlp

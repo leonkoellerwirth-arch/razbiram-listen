@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>razbiram-listen — karaoke reading</title>
+    <!-- Fonts from the razbiram.com design system (Manrope UI, Unbounded numerals,
+         PT Serif). Visual identity © razbiram.com. The app works fully offline via
+         the system-font fallbacks in styles.css if the fonts don't load. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Unbounded:wght@600;700;800&family=PT+Serif:ital,wght@0,400;0,700;1,400&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <header class="rz-topbar">
+      <div class="rz-brand">
+        <svg class="rz-node" width="26" height="26" viewBox="0 0 34 34" aria-hidden="true">
+          <line x1="17" y1="17" x2="6" y2="7" stroke="currentColor" stroke-width="1.7" />
+          <line x1="17" y1="17" x2="29" y2="9" stroke="currentColor" stroke-width="1.7" />
+          <line x1="17" y1="17" x2="9" y2="28" stroke="currentColor" stroke-width="1.7" />
+          <line x1="17" y1="17" x2="27" y2="27" stroke="currentColor" stroke-width="1.7" />
+          <circle cx="6" cy="7" r="3" fill="currentColor" />
+          <circle cx="29" cy="9" r="2.5" fill="currentColor" />
+          <circle cx="9" cy="28" r="2.5" fill="currentColor" />
+          <circle cx="27" cy="27" r="2.5" fill="currentColor" />
+          <circle cx="17" cy="17" r="5" fill="currentColor" />
+        </svg>
+        <span class="rz-wordmark">razb<span class="accent">i</span>ram<span class="sub">-listen</span></span>
+      </div>
+      <button id="theme" class="rz-btn" type="button" aria-label="Toggle colour scheme">☾ Dark</button>
+    </header>
+
+    <main class="rz-main">
+      <section class="rz-card rz-loader" id="loader">
+        <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
+        <p class="rz-muted">
+          Load a <code>.listen.json</code> (from <code>razbiram-listen process</code>) and its
+          audio file. Everything stays on your machine — no upload.
+        </p>
+        <div class="rz-picks">
+          <label class="rz-pick">
+            <span class="rz-pick-label">1 · .listen.json</span>
+            <input id="doc-input" type="file" accept=".json,application/json" />
+          </label>
+          <label class="rz-pick">
+            <span class="rz-pick-label">2 · audio file</span>
+            <input id="audio-input" type="file" accept="audio/*" />
+          </label>
+        </div>
+        <p class="rz-note" id="load-note" hidden></p>
+      </section>
+
+      <section class="rz-transport rz-card" id="transport" hidden>
+        <button id="play" class="rz-btn rz-btn-primary" type="button">▶ Play</button>
+        <span class="rz-time"><span id="cur" class="rz-numeral">0:00</span> / <span id="dur" class="rz-numeral">0:00</span></span>
+        <label class="rz-ctl">Tempo <span id="rate-val" class="rz-numeral">1.0×</span>
+          <input id="rate" type="range" min="0.5" max="1.5" step="0.1" value="1" />
+        </label>
+        <button id="loop" class="rz-btn" type="button" aria-pressed="false">↺ Loop sentence</button>
+      </section>
+
+      <section class="rz-reader" id="reader" hidden></section>
+    </main>
+
+    <footer class="rz-footer rz-faint">
+      Part of the razbiram ecosystem · razbiram-listen · local-first, no telemetry · visual identity © razbiram.com
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

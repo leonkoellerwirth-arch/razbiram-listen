@@ -1,0 +1,159 @@
+/*
+ * razbiram visual identity — © razbiram.com. NOT covered by this repo's MIT
+ * licence. These design tokens (warm palette, coral accent, CEFR scale,
+ * Manrope/Unbounded/PT-Serif type, the razb·i·ram wordmark) are razbiram product
+ * IP, adopted verbatim from razbiram-anki / razbiram-nlp for one coherent family
+ * face. Attribute it; do not relicense it. (Rule-of-Three note in HANDOFF: three
+ * viewers now share these tokens — a shared tokens.css is an ADR candidate.)
+ */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #faf7f4;
+  --surface: #ffffff;
+  --surface-2: #fbf4f1;
+  --text: #221b16;
+  --muted: rgba(34, 27, 22, 0.58);
+  --faint: rgba(34, 27, 22, 0.42);
+  --primary: #e2533c;
+  --primary-2: #c43f28;
+  --primary-soft: rgba(226, 83, 60, 0.12);
+  --on-primary: #ffffff;
+  --hairline: rgba(34, 27, 22, 0.1);
+  --r-lg: 18px;
+  --r-md: 14px;
+  --shadow-1: 0 1px 2px rgba(15, 23, 42, 0.06), 0 10px 26px rgba(15, 23, 42, 0.07);
+  --shadow-2: 0 2px 10px rgba(15, 23, 42, 0.1), 0 26px 58px rgba(15, 23, 42, 0.12);
+  --font-sans: "Manrope", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-display: "Unbounded", "Manrope", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "PT Serif", Georgia, "Times New Roman", serif;
+  --band-A1-bg: #d1fae5; --band-A1-fg: #047857;
+  --band-A2-bg: #ccfbf1; --band-A2-fg: #0f766e;
+  --band-B1-bg: #dbeafe; --band-B1-fg: #1d4ed8;
+  --band-B2-bg: #e0e7ff; --band-B2-fg: #4338ca;
+  --band-C1-bg: #ede9fe; --band-C1-fg: #6d28d9;
+  --band-C2-bg: #fef3c7; --band-C2-fg: #b45309;
+  --wash-1: rgba(226, 83, 60, 0.06);
+  --wash-2: rgba(245, 158, 11, 0.05);
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #17120f;
+  --surface: #1f1815;
+  --surface-2: #271d18;
+  --text: #f3ece7;
+  --muted: rgba(243, 236, 231, 0.6);
+  --faint: rgba(243, 236, 231, 0.42);
+  --primary: #ef6144;
+  --primary-2: #e2533c;
+  --primary-soft: rgba(239, 97, 68, 0.16);
+  --hairline: rgba(243, 236, 231, 0.14);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 10px 26px rgba(0, 0, 0, 0.45);
+  --shadow-2: 0 2px 10px rgba(0, 0, 0, 0.5), 0 26px 58px rgba(0, 0, 0, 0.55);
+  --band-A1-bg: rgba(16, 185, 129, 0.18); --band-A1-fg: #6ee7b7;
+  --band-A2-bg: rgba(20, 184, 166, 0.18); --band-A2-fg: #5eead4;
+  --band-B1-bg: rgba(59, 130, 246, 0.2); --band-B1-fg: #93c5fd;
+  --band-B2-bg: rgba(99, 102, 241, 0.22); --band-B2-fg: #a5b4fc;
+  --band-C1-bg: rgba(139, 92, 246, 0.22); --band-C1-fg: #c4b5fd;
+  --band-C2-bg: rgba(245, 158, 11, 0.2); --band-C2-fg: #fcd34d;
+  --wash-1: rgba(239, 97, 68, 0.08);
+  --wash-2: rgba(245, 158, 11, 0.05);
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--bg);
+  background-image:
+    radial-gradient(1200px 420px at 18% 0%, var(--wash-1), transparent 56%),
+    radial-gradient(900px 360px at 88% 6%, var(--wash-2), transparent 60%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* --- top bar / brand -------------------------------------------------------- */
+.rz-topbar {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding: 16px 20px; max-width: 860px; margin: 0 auto;
+}
+.rz-brand { display: flex; align-items: center; gap: 10px; }
+.rz-node { color: var(--primary); flex: none; }
+.rz-wordmark { font-weight: 800; letter-spacing: -0.02em; font-size: 22px; }
+.rz-wordmark .accent { color: var(--primary); }
+.rz-wordmark .sub { color: var(--muted); font-weight: 700; }
+
+.rz-main { max-width: 760px; margin: 0 auto; padding: 8px 20px 72px; }
+.rz-footer { max-width: 760px; margin: 0 auto; padding: 0 20px 40px; font-size: 13px; }
+.rz-h1 { font-size: 26px; letter-spacing: -0.01em; margin: 4px 0 8px; }
+.rz-muted { color: var(--muted); }
+.rz-faint { color: var(--faint); }
+
+.rz-card {
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 18px;
+}
+
+/* --- buttons ---------------------------------------------------------------- */
+.rz-btn {
+  font: inherit; font-weight: 700; padding: 8px 14px; border-radius: var(--r-md);
+  border: 1px solid var(--hairline); background: var(--surface); color: var(--text);
+  cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.rz-btn:hover { background: var(--surface-2); }
+.rz-btn:active { transform: translateY(1px); }
+.rz-btn[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
+.rz-btn-primary { background: var(--primary); color: var(--on-primary); border-color: transparent; box-shadow: 0 4px 14px rgba(226, 83, 60, 0.3); }
+.rz-btn-primary:hover { background: var(--primary-2); }
+
+/* --- loader ----------------------------------------------------------------- */
+.rz-picks { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
+.rz-pick { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
+.rz-pick-label { color: var(--muted); }
+.rz-note { margin: 14px 0 0; font-size: 14px; }
+.rz-note.is-warn { color: var(--primary); }
+
+/* --- transport -------------------------------------------------------------- */
+.rz-transport { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
+.rz-ctl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); font-size: 14px; }
+.rz-ctl input[type="range"] { accent-color: var(--primary); }
+.rz-time { color: var(--muted); font-weight: 600; }
+.rz-numeral { font-family: var(--font-display); font-weight: 700; }
+
+/* --- reader / karaoke ------------------------------------------------------- */
+.rz-reader { margin-top: 18px; }
+.rz-sentence {
+  font-family: var(--font-serif); font-size: 21px; line-height: 1.85;
+  margin: 0 0 4px; padding: 8px 12px; border-radius: var(--r-md);
+  color: var(--muted); transition: color 0.2s, background 0.2s;
+}
+.rz-sentence.is-current { color: var(--text); background: var(--surface); box-shadow: var(--shadow-1); }
+.rz-tok { border-radius: 6px; padding: 0 1px; transition: background 0.12s, color 0.12s; }
+.rz-tok.is-timed { cursor: pointer; }
+.rz-tok.is-timed:hover { background: var(--primary-soft); }
+.rz-tok.is-active { background: var(--primary); color: var(--on-primary); }
+
+/* --- CEFR badges ------------------------------------------------------------ */
+.rz-badge { display: inline-block; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; border-radius: 999px; padding: 0.12rem 0.5rem; }
+.band-A1 { background: var(--band-A1-bg); color: var(--band-A1-fg); }
+.band-A2 { background: var(--band-A2-bg); color: var(--band-A2-fg); }
+.band-B1 { background: var(--band-B1-bg); color: var(--band-B1-fg); }
+.band-B2 { background: var(--band-B2-bg); color: var(--band-B2-fg); }
+.band-C1 { background: var(--band-C1-bg); color: var(--band-C1-fg); }
+.band-C2 { background: var(--band-C2-bg); color: var(--band-C2-fg); }
+
+/* --- popover ---------------------------------------------------------------- */
+.rz-popover {
+  position: absolute; z-index: 50; max-width: 260px; pointer-events: none;
+  background: var(--surface); border: 1px solid var(--hairline);
+  border-radius: var(--r-md); box-shadow: var(--shadow-2); padding: 10px 12px;
+}
+.rz-pop-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.rz-pop-lemma { font-weight: 800; font-size: 16px; }
+.rz-pop-pos { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+.rz-pop-gloss { margin-top: 6px; font-family: var(--font-serif); color: var(--text); }

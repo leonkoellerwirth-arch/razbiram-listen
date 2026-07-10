@@ -4,6 +4,37 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M5 (Viewer MVP)
+
+### Done
+- `viewer/` — Vite + **vanilla TypeScript** (light, per briefing), local-first
+  (file pickers, no upload/server/telemetry). Modules: `loadListen` (parse +
+  shape-check), `sync` (pure active-token/-sentence lookup), `cefr` (band→class),
+  `player` (audio + A–B loop + rate), `popover`, `karaoke` (render + highlight +
+  click-to-seek + auto-scroll), `main` (wiring, tempo, loop, dark toggle).
+- **Design identity reused** from the family (razbiram-anki/Studio): tokens +
+  CEFR scale + node-mark + wordmark, as self-contained CSS (no Tailwind).
+- Tests: 11 unit tests (sync/cefr/loadListen) via vitest. `npm run build`
+  (tsc + vite) is clean. **CI:** new `viewer` job (build + tests).
+
+### Hub-check / Rule-of-Three note (ECOSYSTEM §3)
+- Three viewers now share the design tokens + CEFR scale (Studio, anki, listen).
+  **Rule of Three is met** → extracting a shared `tokens.css` / `viewer-core`
+  (badge, popover, token rendering) is now a live **ADR candidate** for the hub.
+  For M5 the tokens were copied with attribution (as anki did), not yet extracted.
+
+### Not covered here (by design)
+- The bundled demo asset (own recorded audio + its `sample.listen.json`) is **M7**.
+  Until then the viewer is exercised BYO: `razbiram-listen process` your own audio,
+  then load both files.
+
+### Next (M6 — Seed-Export)
+- In the viewer: a ＋ on each word collects vocabulary; an export button produces
+  (a) a razbiram Seed JSON and (b) a razbiram-anki-compatible EnrichedDocument
+  subset. Roundtrip test through to a razbiram-anki deck.
+
+---
+
 ## Session 1 — M4 (pipeline + CLI)
 
 ### Done
