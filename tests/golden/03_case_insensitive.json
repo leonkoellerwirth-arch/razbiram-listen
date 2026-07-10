@@ -1,0 +1,28 @@
+{
+  "name": "case_insensitive",
+  "description": "Whisper casing differs from the enriched tokens; matching is case-tolerant.",
+  "sentences": [
+    {"tokens": [
+      {"text": "Той", "kind": "word"},
+      {"text": "чете", "kind": "word"},
+      {"text": "книга", "kind": "word"},
+      {"text": ".", "kind": "punct"}
+    ]}
+  ],
+  "whisper_words": [
+    {"text": "той", "start": 0.0, "end": 0.3, "probability": 0.9},
+    {"text": "Чете", "start": 0.3, "end": 0.7, "probability": 0.9},
+    {"text": "КНИГА.", "start": 0.7, "end": 1.2, "probability": 0.85}
+  ],
+  "expected": {
+    "coverage": 1.0,
+    "token_timings": [
+      {"text": "Той", "t_start": 0.0, "t_end": 0.3, "source": "word"},
+      {"text": "чете", "t_start": 0.3, "t_end": 0.7, "source": "word"},
+      {"text": "книга", "t_start": 0.7, "t_end": 1.2, "source": "word"}
+    ],
+    "segments": [
+      {"sentence_index": 0, "t_start": 0.0, "t_end": 1.2}
+    ]
+  }
+}

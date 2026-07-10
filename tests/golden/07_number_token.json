@@ -1,0 +1,28 @@
+{
+  "name": "number_token",
+  "description": "A number token is a spoken token and must receive a timing.",
+  "sentences": [
+    {"tokens": [
+      {"text": "Имам", "kind": "word"},
+      {"text": "3", "kind": "number"},
+      {"text": "книги", "kind": "word"},
+      {"text": ".", "kind": "punct"}
+    ]}
+  ],
+  "whisper_words": [
+    {"text": "Имам", "start": 0.0, "end": 0.4, "probability": 0.9},
+    {"text": "3", "start": 0.4, "end": 0.5, "probability": 0.7},
+    {"text": "книги.", "start": 0.5, "end": 1.0, "probability": 0.9}
+  ],
+  "expected": {
+    "coverage": 1.0,
+    "token_timings": [
+      {"text": "Имам", "t_start": 0.0, "t_end": 0.4, "source": "word"},
+      {"text": "3", "t_start": 0.4, "t_end": 0.5, "source": "word"},
+      {"text": "книги", "t_start": 0.5, "t_end": 1.0, "source": "word"}
+    ],
+    "segments": [
+      {"sentence_index": 0, "t_start": 0.0, "t_end": 1.0}
+    ]
+  }
+}

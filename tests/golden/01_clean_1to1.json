@@ -1,0 +1,28 @@
+{
+  "name": "clean_1to1",
+  "description": "Perfect 1:1 alignment; sentence-final period attaches to the last Whisper word.",
+  "sentences": [
+    {"tokens": [
+      {"text": "Аз", "kind": "word"},
+      {"text": "съм", "kind": "word"},
+      {"text": "тук", "kind": "word"},
+      {"text": ".", "kind": "punct"}
+    ]}
+  ],
+  "whisper_words": [
+    {"text": "Аз", "start": 0.0, "end": 0.4, "probability": 0.95},
+    {"text": "съм", "start": 0.4, "end": 0.7, "probability": 0.9},
+    {"text": "тук.", "start": 0.7, "end": 1.1, "probability": 0.88}
+  ],
+  "expected": {
+    "coverage": 1.0,
+    "token_timings": [
+      {"text": "Аз", "t_start": 0.0, "t_end": 0.4, "source": "word"},
+      {"text": "съм", "t_start": 0.4, "t_end": 0.7, "source": "word"},
+      {"text": "тук", "t_start": 0.7, "t_end": 1.1, "source": "word"}
+    ],
+    "segments": [
+      {"sentence_index": 0, "t_start": 0.0, "t_end": 1.1}
+    ]
+  }
+}

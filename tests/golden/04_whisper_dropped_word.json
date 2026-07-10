@@ -1,0 +1,27 @@
+{
+  "name": "whisper_dropped_word",
+  "description": "Whisper misses a middle word; that token falls back to the sentence window.",
+  "sentences": [
+    {"tokens": [
+      {"text": "Аз", "kind": "word"},
+      {"text": "обичам", "kind": "word"},
+      {"text": "музика", "kind": "word"},
+      {"text": ".", "kind": "punct"}
+    ]}
+  ],
+  "whisper_words": [
+    {"text": "Аз", "start": 0.0, "end": 0.4, "probability": 0.9},
+    {"text": "музика.", "start": 0.9, "end": 1.4, "probability": 0.8}
+  ],
+  "expected": {
+    "coverage": 0.6666666666666666,
+    "token_timings": [
+      {"text": "Аз", "t_start": 0.0, "t_end": 0.4, "source": "word"},
+      {"text": "обичам", "t_start": 0.0, "t_end": 1.4, "source": "segment"},
+      {"text": "музика", "t_start": 0.9, "t_end": 1.4, "source": "word"}
+    ],
+    "segments": [
+      {"sentence_index": 0, "t_start": 0.0, "t_end": 1.4}
+    ]
+  }
+}

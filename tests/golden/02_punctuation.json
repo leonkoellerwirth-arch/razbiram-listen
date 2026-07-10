@@ -1,0 +1,29 @@
+{
+  "name": "punctuation",
+  "description": "Comma and period carried inline by Whisper words; punct tokens get no timing.",
+  "sentences": [
+    {"tokens": [
+      {"text": "Да", "kind": "word"},
+      {"text": ",", "kind": "punct"},
+      {"text": "разбира", "kind": "word"},
+      {"text": "се", "kind": "word"},
+      {"text": ".", "kind": "punct"}
+    ]}
+  ],
+  "whisper_words": [
+    {"text": "Да,", "start": 0.0, "end": 0.3, "probability": 0.9},
+    {"text": "разбира", "start": 0.3, "end": 0.9, "probability": 0.92},
+    {"text": "се.", "start": 0.9, "end": 1.2, "probability": 0.87}
+  ],
+  "expected": {
+    "coverage": 1.0,
+    "token_timings": [
+      {"text": "Да", "t_start": 0.0, "t_end": 0.3, "source": "word"},
+      {"text": "разбира", "t_start": 0.3, "t_end": 0.9, "source": "word"},
+      {"text": "се", "t_start": 0.9, "t_end": 1.2, "source": "word"}
+    ],
+    "segments": [
+      {"sentence_index": 0, "t_start": 0.0, "t_end": 1.2}
+    ]
+  }
+}

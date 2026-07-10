@@ -4,6 +4,40 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M3 (align, the core)
+
+### Done
+- `align.py`: `align(doc, transcription) -> AlignmentResult` (`ListenTimings` +
+  `AlignmentStats`). Content-based (not char-offset) so it survives transcript
+  edits (M7): order-preserving two-pointer match on **normalised** surfaces
+  (lower-cased, outer punctuation stripped → case/punct tolerant), with a
+  look-ahead (=3) resync for Whisper insertions/deletions. Unmatched word tokens
+  fall back to their sentence window (`source="segment"`); gap sentences are
+  interpolated from matched neighbours. Punct tokens carry no timing by design.
+- **Golden-Set:** `tests/golden/*.json` (7 hand-verified cases: clean 1:1,
+  inline punctuation, case-insensitivity, dropped word, extra/filler word,
+  whole-sentence gap interpolation, number token) + `test_align_golden.py`.
+  `AlignmentStats.coverage` is the regression signal. **All green** (21 tests
+  total, 1 slow deselected). ruff + format clean.
+
+### Hub-check record (ECOSYSTEM §3)
+- No hub equivalent for audio alignment. Reused hub types only: `EnrichedDocument`,
+  `Token`, `Sentence`. `ListenTimings`/`TokenTiming`/`SegmentTiming` are the M1
+  models. Nothing reimplemented.
+
+### Design note
+- Matching is on content, not character offsets, on purpose: it keeps alignment
+  correct after the M7 transcript-edit re-enrich, where token offsets diverge
+  from the original Whisper text. Fallbacks degrade gracefully (segment window).
+
+### Next (M4 — pipeline + CLI)
+- `pipeline.py`: transcribe → `razbiram_nlp.enrich_text(text, gloss_lang=…)` →
+  `align` → `ListenDocument.from_enriched(doc, audio_ref=…, timings=…)` →
+  `.listen.json`. Wire `cli.py` `process --audio --gloss --out`. Keep the real
+  enrich/whisper behind `slow`; unit-test the orchestration with fakes.
+
+---
+
 ## Session 1 — M2 (transcribe)
 
 ### Done
