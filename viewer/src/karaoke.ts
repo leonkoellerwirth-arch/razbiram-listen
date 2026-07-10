@@ -33,9 +33,11 @@ export function renderKaraoke(
   const timingByStart = tokenTimingByStart(doc.timings);
   const segStartBySi = new Map<number, number>();
   for (const s of doc.timings?.segments ?? []) segStartBySi.set(s.sentence_index, s.t_start);
-  const glossByLemma = new Map<string, string>();
+  // Key glosses case-insensitively so a token joins whether it carries a lemma
+  // (morphology ran) or only a surface form (segmentation-only enrichment).
+  const glossByKey = new Map<string, string>();
   for (const v of doc.vocab ?? []) {
-    if (v.lemma && v.gloss?.text) glossByLemma.set(v.lemma, v.gloss.text);
+    if (v.lemma && v.gloss?.text) glossByKey.set(v.lemma.toLowerCase(), v.gloss.text);
   }
 
   root.appendChild(buildHeader(doc, root));
@@ -78,7 +80,7 @@ export function renderKaraoke(
         span.addEventListener("click", () => onSeek(timing.t_start));
         tokenEls.set(tok.start, span);
       }
-      const gloss = tok.lemma ? (glossByLemma.get(tok.lemma) ?? null) : null;
+      const gloss = glossByKey.get((tok.lemma || tok.text).toLowerCase()) ?? null;
       const item = seedItem(tok, gloss);
       span.addEventListener("mouseenter", () =>
         popover.show(

@@ -4,6 +4,34 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — Local translation verified; viewer gloss-lookup fix
+
+### Verified
+- **Fully local translation works** via Ollama (`aya-expanse:8b`, multilingual):
+  `enrich_text(text, gloss_lang="de", stages={segmentation,difficulty,vocab,gloss})`
+  → correct German sentence glosses + per-word glosses + CEFR bands in ~10s, **no
+  classla**. classla (morphology) would sharpen lemma/band; without it they're
+  frequency-based approximations. Local demo (`examples/_demo/`) regenerated with
+  real Ollama translations (git-ignored).
+- Viewer: gloss lookup now keys case-insensitively and falls back to the surface
+  form, so word glosses show whether or not morphology ran. Build + 17 tests green.
+
+### Integration gaps found (for `razbiram-listen process --gloss de` out-of-box)
+1. **Default gloss model is `llama3.1`** (razbiram-nlp `OllamaGlossProvider`); users
+   may have other models. → add a CLI `--gloss-model` (and/or `--gloss-provider`).
+2. **difficulty/vocab need the hub's `data/` + `config/`**, which the installed
+   wheel does not ship → they fail unless `RAZBIRAM_NLP_DATA_DIR` /
+   `RAZBIRAM_NLP_CONFIG_DIR` point at a hub checkout. → document, or ask the hub to
+   package the data (hub issue), or degrade gracefully (skip difficulty/vocab).
+3. **morphology needs the `classla` extra** (heavy) — optional; segmentation-only
+   still yields sentence + word glosses.
+
+### Next
+- Small: wire `--gloss-model` into the CLI + document the data/config env vars.
+- Then M7 polish.
+
+---
+
 ## Session 1 — Open-URL import (the §8-scoped feature)
 
 ### Done
