@@ -19,6 +19,11 @@ SemVer. The `.listen.json` document shape is versioned separately via
   match with look-ahead resync; unmatched tokens fall back to their sentence
   window, and gap sentences are interpolated. Exposes an `AlignmentStats.coverage`
   quality metric, guarded by a 7-case **Golden-Set**.
+- **M4 — Pipeline + CLI.** `process_audio()` orchestrates transcribe → hub
+  `enrich_text` → align → `ListenDocument`, with injectable transcribe/enrich
+  seams for net-free tests. `razbiram-listen process --audio … --gloss … --out …`
+  writes the `.listen.json` and reports alignment coverage. Verified end to end
+  (real Whisper tiny + real hub segmentation) in a `slow` test.
 
 ### Contract
 - `.listen.json` **schemaVersion 1.0.0** — superset of the razbiram-nlp

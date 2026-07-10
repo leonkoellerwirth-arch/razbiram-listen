@@ -4,6 +4,36 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M4 (pipeline + CLI)
+
+### Done
+- `pipeline.py`: `process_audio()` wires transcribe (M2) → `razbiram_nlp.enrich_text`
+  (hub, reused not reimplemented) → `align` (M3) → `ListenDocument.from_enriched`
+  with `AudioRef` (filename + duration only — never the audio). Returns a
+  `ProcessResult` (document + `AlignmentStats` + language/duration). Transcribe and
+  enrich are **injectable seams** for net-free tests; real ones built lazily.
+- `cli.py`: `razbiram-listen process --audio --out --gloss --model --language`,
+  writes `.listen.json`, prints coverage; warns on <50% coverage.
+- Tests: 3 net-free orchestration tests (fake transcriber + fake/spy enrich) + 1
+  real `slow` end-to-end (real Whisper `tiny` + hub segmentation only, no classla)
+  — verified locally. 24 unit tests green, ruff + format clean.
+
+### Hub-check record (ECOSYSTEM §3)
+- Enrichment delegated to hub `enrich_text` (not reimplemented). Only transcribe +
+  align + assembly are ours. `enrich_text(text, *, gloss_lang=…, stages=…)`.
+
+### Milestone note
+- End-to-end MP3 → `.listen.json` now works. First real CLI run downloads the
+  Whisper model and (for morphology/gloss) the classla model — expected, documented.
+
+### Next (M5 — Viewer MVP)
+- Vite app under `viewer/`: load `.listen.json` + local audio (file picker, no
+  upload), karaoke sync (active word highlight, click-to-seek), hover popover
+  (lemma/POS/gloss/CEFR badge with the ecosystem colour scale), tempo + A-B loop,
+  dark mode. Add the viewer build-check to CI.
+
+---
+
 ## Session 1 — M3 (align, the core)
 
 ### Done
