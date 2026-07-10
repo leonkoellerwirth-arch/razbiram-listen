@@ -1,11 +1,18 @@
 import { bandClass, CEFR_BANDS } from "./cefr";
 import { Popover } from "./popover";
+import type { SeedItem } from "./seed";
 import { activeSentenceIndex, activeTokenStart, tokenTimingByStart } from "./sync";
-import type { ListenDocument } from "./types";
+import type { ListenDocument, Token } from "./types";
 
 export interface KaraokeHandle {
   /** Update highlights for the current audio time (seconds). */
   update(t: number): void;
+}
+
+export interface RenderOptions {
+  onSeek: (seconds: number) => void;
+  onCollect: (item: SeedItem) => void;
+  isCollected: (item: SeedItem) => boolean;
 }
 
 const TIMED_KINDS = new Set(["word", "number"]);
@@ -13,12 +20,13 @@ const TIMED_KINDS = new Set(["word", "number"]);
 /** Render the document as a Studio-style reading view (sentence rows with a
  *  per-sentence Listen button and an optional translation), and return a handle
  *  that syncs highlights to the audio clock. `onSeek(seconds)` fires on a word
- *  click or a sentence's Listen button. */
+ *  click or a sentence's Listen button; the popover's ＋ calls `onCollect`. */
 export function renderKaraoke(
   doc: ListenDocument,
   root: HTMLElement,
-  onSeek: (seconds: number) => void,
+  opts: RenderOptions,
 ): KaraokeHandle {
+  const onSeek = opts.onSeek;
   root.innerHTML = "";
   root.dataset.translate = "off";
 
@@ -32,7 +40,7 @@ export function renderKaraoke(
 
   root.appendChild(buildHeader(doc, root));
 
-  const popover = new Popover();
+  const popover = new Popover({ onCollect: opts.onCollect, isCollected: opts.isCollected });
   const tokenEls = new Map<number, HTMLElement>();
   const rowEls: HTMLElement[] = [];
 
@@ -70,16 +78,16 @@ export function renderKaraoke(
         span.addEventListener("click", () => onSeek(timing.t_start));
         tokenEls.set(tok.start, span);
       }
+      const gloss = tok.lemma ? (glossByLemma.get(tok.lemma) ?? null) : null;
+      const item = seedItem(tok, gloss);
       span.addEventListener("mouseenter", () =>
-        popover.show(span, {
-          surface: tok.text,
-          lemma: tok.lemma,
-          upos: tok.upos,
-          band: tok.band,
-          gloss: tok.lemma ? (glossByLemma.get(tok.lemma) ?? null) : null,
-        }),
+        popover.show(
+          span,
+          { surface: tok.text, lemma: tok.lemma, upos: tok.upos, band: tok.band, gloss },
+          item,
+        ),
       );
-      span.addEventListener("mouseleave", () => popover.hide());
+      span.addEventListener("mouseleave", () => popover.scheduleHide());
       p.appendChild(span);
     });
     body.appendChild(p);
@@ -156,6 +164,16 @@ function buildHeader(doc: ListenDocument, root: HTMLElement): HTMLElement {
 
   head.append(meta, toggle);
   return head;
+}
+
+function seedItem(tok: Token, gloss: string | null): SeedItem {
+  return {
+    surface: tok.text,
+    lemma: tok.lemma || tok.text,
+    upos: tok.upos ?? null,
+    band: tok.band ?? null,
+    gloss,
+  };
 }
 
 /** Overall band = the document estimate if present, else the hardest word band. */

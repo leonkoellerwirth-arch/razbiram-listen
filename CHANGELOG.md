@@ -29,7 +29,18 @@ SemVer. The `.listen.json` document shape is versioned separately via
   highlight, click-to-seek, auto-scroll), hover popover (lemma · POS · gloss ·
   CEFR badge on the family colour scale), tempo (0.5×–1.5×), A–B sentence loop,
   dark mode. Pure sync/CEFR/loader logic is unit-tested; the viewer build + tests
-  are a CI job.
+  are a CI job. Studio-style reading rows (per-sentence Listen, Show-translation,
+  CEFR header) and drag-and-drop loading followed.
+- **M6 — Seed-Export.** The word popover gains a ＋ to collect vocabulary into a
+  deduplicated basket; a sticky seed bar exports it two ways — a **razbiram Seed
+  JSON** and a **CrowdAnki `deck.json`** (razbiram-anki-compatible, front = lemma
+  / back = gloss). Roundtrip-tested against razbiram-anki's own deck shape check.
+
+### Policy
+- **Briefing §8 scoped (author-authorised amendment):** importing a user-supplied
+  **direct audio-file URL / podcast RSS enclosure** is allowed; **streaming/DRM
+  platform scraping (Spotify, YouTube, …) stays forbidden.** Recorded in the
+  briefing §8 addendum, `CLAUDE.md`, and BIBLE D6.
 
 ### Contract
 - `.listen.json` **schemaVersion 1.0.0** — superset of the razbiram-nlp

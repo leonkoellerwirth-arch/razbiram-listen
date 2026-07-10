@@ -4,6 +4,38 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M6 (Seed-Export) + §8 scoping
+
+### Governance (BIBLE D6)
+- **Briefing §8 scoped** by author-authorised amendment: a **user-supplied direct
+  audio-URL / podcast RSS enclosure** import is now allowed; **streaming/DRM
+  platform scraping (YouTube/Spotify/…) stays forbidden.** Recorded in the briefing
+  §8 addendum, `CLAUDE.md` §5, and BIBLE D5/D6. Family-wide → **hub ADR candidate**.
+- **Approved-but-not-yet-built feature:** a `--url`/paste import for open direct
+  audio (podcast RSS enclosure or direct file the user has rights to) — fetches
+  only that one named open file, transcribes locally. To build after M6.
+
+### Done (M6)
+- `viewer/src/seed.ts`: `SeedBasket` (dedupe by lemma) + `toRazbiramSeed` +
+  `toCrowdAnkiDeck` (front = lemma, back = gloss; stable FNV-1a guids).
+- Popover is now interactive (hover-bridge) with a ＋/✓ collect button; a sticky
+  **seed bar** shows the count and exports both formats (download, no upload).
+- Tests: `seed.test.ts` (6) incl. a **roundtrip** asserting the deck.json passes a
+  mirror of razbiram-anki's `loadDeckJson` shape check. 17 viewer tests green,
+  build clean.
+
+### Roundtrip note
+- The roundtrip is asserted against a *mirror* of razbiram-anki's CrowdAnki check.
+  A stronger cross-repo check (feed the exported deck.json into razbiram-anki's
+  `convertFile`) is available if we want it.
+
+### Next (M7 — Politur)
+- Own recorded Bulgarian example under `examples/sample-audio/` + its committed
+  `sample.listen.json` + `SOURCES.md`; GIF/screenshots (light+dark); README polish;
+  transcript-edit mode; fresh-clone acceptance. Then the approved open-URL import.
+
+---
+
 ## Session 1 — M5.1 (Studio-style reading view) + policy note
 
 ### Policy decision (BIBLE D5)

@@ -2,6 +2,7 @@ import "./styles.css";
 import { type KaraokeHandle, renderKaraoke } from "./karaoke";
 import { ListenError, parseListenDocument } from "./loadListen";
 import { Player } from "./player";
+import { SeedBasket, toCrowdAnkiDeck, toRazbiramSeed } from "./seed";
 import { activeSentenceIndex } from "./sync";
 import type { ListenDocument, SegmentTiming } from "./types";
 
@@ -24,8 +25,14 @@ const durEl = el<HTMLSpanElement>("dur");
 const rate = el<HTMLInputElement>("rate");
 const rateVal = el<HTMLSpanElement>("rate-val");
 const loopBtn = el<HTMLButtonElement>("loop");
+const seedbar = el<HTMLElement>("seedbar");
+const seedCount = el<HTMLSpanElement>("seed-count");
+const seedExportSeed = el<HTMLButtonElement>("seed-export-seed");
+const seedExportDeck = el<HTMLButtonElement>("seed-export-deck");
+const seedClear = el<HTMLButtonElement>("seed-clear");
 
 const player = new Player();
+const basket = new SeedBasket();
 let doc: ListenDocument | null = null;
 let audioName: string | null = null;
 let audioUrl: string | null = null;
@@ -101,10 +108,18 @@ function maybeStart(): void {
 
   transport.hidden = false;
   reader.hidden = false;
-  karaoke = renderKaraoke(doc, reader, (seconds) => {
-    player.seek(seconds);
-    if (player.paused) void player.play();
+  karaoke = renderKaraoke(doc, reader, {
+    onSeek: (seconds) => {
+      player.seek(seconds);
+      if (player.paused) void player.play();
+    },
+    onCollect: (itemToCollect) => {
+      basket.toggle(itemToCollect);
+      updateSeedBar();
+    },
+    isCollected: (candidate) => basket.has(candidate),
   });
+  updateSeedBar();
 
   const expected = doc.audioRef?.filename;
   if (expected && audioName && expected !== audioName) {
@@ -149,6 +164,43 @@ function currentSegment(): SegmentTiming | null {
   if (!segs) return null;
   const si = activeSentenceIndex(segs, player.currentTime);
   return si === null ? null : (segs.find((s) => s.sentence_index === si) ?? null);
+}
+
+// --- seed export -------------------------------------------------------------
+function updateSeedBar(): void {
+  seedbar.hidden = basket.size === 0;
+  seedCount.textContent = String(basket.size);
+}
+
+function deckName(): string {
+  const base = audioName?.replace(/\.[^.]+$/, "");
+  return base ? `${base} — razbiram-listen seed` : "razbiram-listen seed";
+}
+
+seedExportSeed.addEventListener("click", () =>
+  downloadJson(
+    toRazbiramSeed(basket.list(), { lang: doc?.lang, glossLang: "de" }),
+    "razbiram-seed.json",
+  ),
+);
+seedExportDeck.addEventListener("click", () =>
+  downloadJson(toCrowdAnkiDeck(basket.list(), deckName()), "deck.json"),
+);
+seedClear.addEventListener("click", () => {
+  basket.clear();
+  updateSeedBar();
+});
+
+function downloadJson(data: unknown, filename: string): void {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 
 // --- animation loop ----------------------------------------------------------

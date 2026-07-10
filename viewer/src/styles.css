@@ -179,7 +179,7 @@ body {
 
 /* --- popover ---------------------------------------------------------------- */
 .rz-popover {
-  position: absolute; z-index: 50; max-width: 260px; pointer-events: none;
+  position: absolute; z-index: 50; max-width: 260px;
   background: var(--surface); border: 1px solid var(--hairline);
   border-radius: var(--r-md); box-shadow: var(--shadow-2); padding: 10px 12px;
 }
@@ -187,3 +187,18 @@ body {
 .rz-pop-lemma { font-weight: 800; font-size: 16px; }
 .rz-pop-pos { color: var(--muted); font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
 .rz-pop-gloss { margin-top: 6px; font-family: var(--font-serif); color: var(--text); }
+.rz-collect {
+  margin-top: 10px; width: 100%; font: inherit; font-weight: 700; font-size: 13px;
+  padding: 6px 10px; border-radius: var(--r-md); border: 1px solid var(--hairline);
+  background: var(--surface-2); color: var(--text); cursor: pointer;
+}
+.rz-collect:hover { border-color: var(--primary); color: var(--primary); }
+.rz-collect[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
+
+/* --- seed bar --------------------------------------------------------------- */
+.rz-seedbar {
+  position: sticky; bottom: 12px; margin-top: 18px;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+}
+.rz-seed-count { font-weight: 700; }
+.rz-seed-actions { display: flex; gap: 8px; flex-wrap: wrap; }
