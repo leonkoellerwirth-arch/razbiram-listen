@@ -67,6 +67,12 @@ Whisper → timings → Karaoke viewer. It consumes and produces the shared
 - **No scraping, no unofficial endpoints.** No code that fetches/parses lyrics,
   subtitles, or transcripts from Spotify, YouTube, Musixmatch, etc. — not in
   examples, comments, roadmap code, or tests.
+  - **§8 amendment (2026-07-10, author-authorised):** importing a **user-supplied
+    direct audio-file URL or a podcast RSS enclosure** the user has rights to **is
+    allowed** (the tool fetches only that one named open file, like a podcast app).
+    Streaming/DRM platforms (Spotify, YouTube, …), caption/transcript endpoints,
+    DRM circumvention, and platform-page resolution remain **strictly forbidden**.
+    Open direct file: yes. Platform: no. (Family-wide → hub ADR candidate.)
 - **No third-party content in the repo.** No song lyrics, no commercial podcast
   clips, no foreign translations.
 - **BYO-audio only.** The tool processes what the user provides locally: no

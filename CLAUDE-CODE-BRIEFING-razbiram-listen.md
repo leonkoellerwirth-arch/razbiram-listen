@@ -112,3 +112,22 @@ razbiram-listen/
 4. **Spotify nur offiziell und nur Metadaten** (Roadmap, nicht MVP): ausschließlich dokumentierte Web-API, ausschließlich Now-Playing/Cover/Playback — niemals Textinhalte.
 5. **Local-first & privat:** kein Server-Upload, keine Telemetrie, keine Cloud-Pflicht; LLM-Glossen via Ollama lokal (Anthropic-Provider optional, klar als solcher gekennzeichnet).
 6. **Übliche Qualitätsregeln:** korrektes Bulgarisch in allen Beispielen; Type Hints, Docstrings, ruff-clean, pytest grün; keine razbiram-Produktinterna.
+
+---
+
+### §8 — Zusatz (Amendment, 2026-07-10, vom Autor autorisiert)
+
+> Der ursprüngliche §8 oben bleibt vollständig gültig. Dieser Zusatz **scoped** ihn präzise:
+> er erlaubt **offene, direkte** Audioquellen und lässt das Scraping-Verbot **unangetastet**.
+
+**Erlaubt (neu):** ein Import einer **vom Nutzer angegebenen, direkten Audiodatei-URL** oder eines
+**Podcast-RSS-Enclosures**, an dem der Nutzer Rechte hat. Das Tool lädt genau **diese eine, benannte
+offene Datei** (wie es jede Podcast-App tut), transkribiert lokal, fertig.
+
+**Weiterhin strikt verboten (unverändert):** Abruf/Parsing von **Streaming-/DRM-Plattformen**
+(Spotify, YouTube, Musixmatch o. ä.); Lyrics-/Untertitel-/Transkript-Endpunkte; Umgehung technischer
+Schutzmaßnahmen; das **Auflösen von Plattform-Seiten** zu Mediendateien; Katalog-Anbindung;
+„so bekommst du das Audio von Plattform X"-Anleitungen. Kurz: **offene Direktdatei ja, Plattform nein.**
+
+*Governance-Hinweis:* §8 gilt familienweit (ECOSYSTEM §7). Dieses Scoping sollte als Hub-ADR
+nachgezogen werden, damit alle Repos dieselbe Grenze teilen.

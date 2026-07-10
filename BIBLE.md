@@ -34,14 +34,19 @@ shared `EnrichedDocument` contract, extended with audio timings.
 - **D4 — `schemaVersion` starts at `1.0.0`** for the `.listen.json` shape;
   `ENRICHED_CONTRACT_SOURCE` records the hub release we read against
   (`razbiram-nlp@v0.1.0`) until the hub stamps its own version (see HANDOFF).
-- **D5 — No link / URL / stream ingestion — declined by policy.** A requested
-  "paste a YouTube link → the tool fetches & processes it" feature was **refused**:
-  it violates Briefing §8.1 (no scraping / unofficial endpoints) and §8.3 (no
-  download feature; the tool processes only what the user provides locally), plus
-  platform ToS and third-party copyright. BYO-audio is the whole point. The viewer
-  loads local files only; the compliant answer to "less friction" is drag-and-drop
-  and a nicer reading UI, never remote fetch. Local TTS may generate *own* demo
-  audio, kept local (git-ignored), never a third-party source.
+- **D5 — No YouTube/streaming scraping.** A "paste a YouTube link → fetch &
+  process" feature was refused: violates §8.1/§8.3, platform ToS, copyright.
+  *(Scope refined by D6; the YouTube/streaming refusal stands.)*
+- **D6 — §8 scoped: open direct-URL import allowed, platform scraping forbidden.**
+  Author-authorised amendment (2026-07-10). Importing a **user-supplied direct
+  audio-file URL or podcast RSS enclosure** the user has rights to **is allowed**
+  (the tool fetches only that one named open file, like a podcast app). **Still
+  forbidden:** Spotify/YouTube/Musixmatch and any streaming/DRM platform,
+  caption/transcript endpoints, DRM circumvention, resolving platform pages to
+  media, catalogue integration, "how to rip X" guides. *Open direct file: yes.
+  Platform: no.* The URL-import is an approved feature (built after M6). Because §8
+  is family-wide (ECOSYSTEM §7), this scoping is a hub-ADR candidate. See the §8
+  amendment in `CLAUDE-CODE-BRIEFING-razbiram-listen.md`.
 
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
