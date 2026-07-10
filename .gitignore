@@ -29,6 +29,10 @@ viewer/.vite/
 # ...except explicitly CC-licensed / own example assets tracked under examples/
 !examples/sample-audio/**
 
+# Local, throwaway demo assets (TTS audio + its .listen.json) — never committed;
+# the shipped example is an own recording under examples/sample-audio/ (M7).
+examples/_demo/
+
 # Env / secrets (ECOSYSTEM §7 — secrets only via env, never in the repo)
 .env
 .env.local

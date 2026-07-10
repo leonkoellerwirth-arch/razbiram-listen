@@ -12,6 +12,7 @@ function el<T extends HTMLElement>(id: string): T {
 }
 
 const themeBtn = el<HTMLButtonElement>("theme");
+const loader = el<HTMLElement>("loader");
 const docInput = el<HTMLInputElement>("doc-input");
 const audioInput = el<HTMLInputElement>("audio-input");
 const loadNote = el<HTMLParagraphElement>("load-note");
@@ -46,9 +47,7 @@ themeBtn.addEventListener("click", () => {
 });
 
 // --- file loading ------------------------------------------------------------
-docInput.addEventListener("change", async () => {
-  const file = docInput.files?.[0];
-  if (!file) return;
+async function handleDoc(file: File): Promise<void> {
   try {
     doc = parseListenDocument(await file.text());
     maybeStart();
@@ -56,16 +55,45 @@ docInput.addEventListener("change", async () => {
     doc = null;
     note(err instanceof ListenError ? err.message : "Konnte die .listen.json nicht lesen.", true);
   }
-});
+}
 
-audioInput.addEventListener("change", () => {
-  const file = audioInput.files?.[0];
-  if (!file) return;
+function handleAudio(file: File): void {
   if (audioUrl) URL.revokeObjectURL(audioUrl);
   audioUrl = URL.createObjectURL(file);
   audioName = file.name;
   player.load(audioUrl);
   maybeStart();
+}
+
+function route(file: File): void {
+  if (file.name.toLowerCase().endsWith(".json")) void handleDoc(file);
+  else if (file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|flac|aiff?)$/i.test(file.name)) {
+    handleAudio(file);
+  } else {
+    note(`„${file.name}“ ist weder eine .listen.json noch eine Audiodatei.`, true);
+  }
+}
+
+docInput.addEventListener("change", () => {
+  const file = docInput.files?.[0];
+  if (file) void handleDoc(file);
+});
+
+audioInput.addEventListener("change", () => {
+  const file = audioInput.files?.[0];
+  if (file) handleAudio(file);
+});
+
+// Drag & drop anywhere on the loader card — route each file by type.
+loader.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  loader.classList.add("is-over");
+});
+loader.addEventListener("dragleave", () => loader.classList.remove("is-over"));
+loader.addEventListener("drop", (e) => {
+  e.preventDefault();
+  loader.classList.remove("is-over");
+  for (const file of Array.from(e.dataTransfer?.files ?? [])) route(file);
 });
 
 function maybeStart(): void {

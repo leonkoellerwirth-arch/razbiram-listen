@@ -4,6 +4,34 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M5.1 (Studio-style reading view) + policy note
+
+### Policy decision (BIBLE D5)
+- A "paste a YouTube/stream link → tool fetches it" request was **declined** —
+  violates Briefing §8.1/§8.3 (no scraping, no download feature; local-only),
+  platform ToS, and copyright. BYO-audio is the point. Compliant answer: drag &
+  drop + a nicer reading UI, plus *own* local TTS to generate throwaway demo audio.
+
+### Done
+- Reworked the viewer reading area into a **Studio-style** view: per-sentence rows
+  with a round **Listen** button (seek + play), a global **Show translation**
+  toggle (sentence gloss), an overall **CEFR badge** header (doc estimate or the
+  hardest word band), and language direction. Word-level karaoke highlight,
+  click-to-seek, and auto-scroll retained.
+- **Drag & drop** onto the loader card (routes .json / audio by type).
+- Viewer build clean, 11 vitest tests still green.
+- **Local demo (not committed):** `examples/_demo/` — own Bulgarian A2 text →
+  macOS `say` (Daria bg_BG) → real pipeline (Whisper small, 73% word coverage) →
+  `demo.listen.json` with own lemma/POS/CEFR + German glosses. `examples/_demo/`
+  is git-ignored (TTS audio + throwaway). Lets the viewer be tested immediately.
+
+### Next
+- Finish M5 polish or proceed to **M6 — Seed-Export** (＋ per word → razbiram Seed
+  JSON + razbiram-anki-compatible EnrichedDocument subset; roundtrip test).
+- M7 ships the real own-recorded example under `examples/sample-audio/`.
+
+---
+
 ## Session 1 — M5 (Viewer MVP)
 
 ### Done

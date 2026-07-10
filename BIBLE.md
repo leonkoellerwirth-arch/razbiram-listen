@@ -34,6 +34,14 @@ shared `EnrichedDocument` contract, extended with audio timings.
 - **D4 — `schemaVersion` starts at `1.0.0`** for the `.listen.json` shape;
   `ENRICHED_CONTRACT_SOURCE` records the hub release we read against
   (`razbiram-nlp@v0.1.0`) until the hub stamps its own version (see HANDOFF).
+- **D5 — No link / URL / stream ingestion — declined by policy.** A requested
+  "paste a YouTube link → the tool fetches & processes it" feature was **refused**:
+  it violates Briefing §8.1 (no scraping / unofficial endpoints) and §8.3 (no
+  download feature; the tool processes only what the user provides locally), plus
+  platform ToS and third-party copyright. BYO-audio is the whole point. The viewer
+  loads local files only; the compliant answer to "less friction" is drag-and-drop
+  and a nicer reading UI, never remote fetch. Local TTS may generate *own* demo
+  audio, kept local (git-ignored), never a third-party source.
 
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field

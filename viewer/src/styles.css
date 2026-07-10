@@ -112,6 +112,8 @@ body {
 .rz-btn-primary:hover { background: var(--primary-2); }
 
 /* --- loader ----------------------------------------------------------------- */
+.rz-loader { transition: border-color 0.15s, background 0.15s; border: 1px solid var(--hairline); }
+.rz-loader.is-over { border-color: var(--primary); background: var(--primary-soft); }
 .rz-picks { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
 .rz-pick { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
 .rz-pick-label { color: var(--muted); }
@@ -125,18 +127,46 @@ body {
 .rz-time { color: var(--muted); font-weight: 600; }
 .rz-numeral { font-family: var(--font-display); font-weight: 700; }
 
-/* --- reader / karaoke ------------------------------------------------------- */
+/* --- reader / karaoke (Studio-style rows) ----------------------------------- */
 .rz-reader { margin-top: 18px; }
-.rz-sentence {
-  font-family: var(--font-serif); font-size: 21px; line-height: 1.85;
-  margin: 0 0 4px; padding: 8px 12px; border-radius: var(--r-md);
-  color: var(--muted); transition: color 0.2s, background 0.2s;
+
+.rz-reader-head {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 4px 4px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--hairline);
 }
-.rz-sentence.is-current { color: var(--text); background: var(--surface); box-shadow: var(--shadow-1); }
+.rz-reader-meta { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+.rz-srow {
+  display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start;
+  padding: 10px 12px; border-radius: var(--r-md); transition: background 0.2s, box-shadow 0.2s;
+}
+.rz-srow.is-current { background: var(--surface); box-shadow: var(--shadow-1); }
+
+.rz-listen {
+  width: 36px; height: 36px; border-radius: 999px; margin-top: 4px;
+  border: 1px solid var(--hairline); background: var(--surface); color: var(--primary);
+  font-size: 13px; cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.05s;
+}
+.rz-listen:hover { background: var(--primary-soft); border-color: var(--primary); }
+.rz-listen:active { transform: translateY(1px); }
+.rz-listen:disabled { opacity: 0.4; cursor: default; }
+
+.rz-sbody { min-width: 0; }
+.rz-sentence {
+  font-family: var(--font-serif); font-size: 21px; line-height: 1.8;
+  margin: 0; color: var(--muted); transition: color 0.2s;
+}
+.rz-srow.is-current .rz-sentence { color: var(--text); }
 .rz-tok { border-radius: 6px; padding: 0 1px; transition: background 0.12s, color 0.12s; }
 .rz-tok.is-timed { cursor: pointer; }
 .rz-tok.is-timed:hover { background: var(--primary-soft); }
 .rz-tok.is-active { background: var(--primary); color: var(--on-primary); }
+
+.rz-translation {
+  display: none; font-family: var(--font-serif); font-style: italic;
+  color: var(--muted); margin: 6px 0 0; font-size: 16px;
+}
+.rz-reader[data-translate="on"] .rz-translation { display: block; }
 
 /* --- CEFR badges ------------------------------------------------------------ */
 .rz-badge { display: inline-block; font-weight: 700; font-size: 0.72rem; letter-spacing: 0.02em; border-radius: 999px; padding: 0.12rem 0.5rem; }
