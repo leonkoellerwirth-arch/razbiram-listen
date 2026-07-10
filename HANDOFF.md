@@ -4,6 +4,30 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — M2 (transcribe)
+
+### Done
+- `transcribe.py`: `Transcriber` wrapping faster-whisper with word-level
+  timestamps always on; faster-whisper types mapped to our own value objects
+  (`Transcription`/`TranscribedSegment`/`TranscribedWord`) at the boundary so
+  `align.py` won't depend on faster-whisper. Model is **injectable** (fake in
+  units); `faster_whisper` imported lazily inside the loader. rich progress bar.
+- Tests: 7 mocked unit tests + 1 real `slow` test (synthesises a tone WAV, runs
+  the real `tiny` model — verified locally, 6s). ruff + pytest green (13 unit /
+  1 slow).
+
+### Hub-check record (ECOSYSTEM §3)
+- Transcription has **no hub equivalent** (the hub has no audio concept);
+  faster-whisper is the external engine. Nothing reimplemented.
+
+### Next (M3 — align, the core)
+- `align.py`: map `Transcription.words` (Whisper timings) onto the razbiram
+  tokens in the EnrichedDocument. Normalised text match, punctuation/case
+  tolerant; segment-timing fallback on mismatch. **Golden-Set** of 5–8 hand-
+  verified cases — do not advance to M4 until green.
+
+---
+
 ## Session 1 — M0 + M1 (repo bootstrap, models, scaffold, CI)
 
 ### Done

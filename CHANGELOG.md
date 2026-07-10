@@ -10,6 +10,10 @@ SemVer. The `.listen.json` document shape is versioned separately via
 - **M1 — Models + scaffold.** `ListenDocument` (an `EnrichedDocument` extended
   with `timings` and `audioRef`), `schemaVersion` 1.0.0, package scaffold,
   contract tests, net-free CI (ruff + pytest), project docs.
+- **M2 — Transcribe.** `Transcriber`, a faster-whisper wrapper with word-level
+  timestamps, an injectable model seam (mocked in unit tests), a rich progress
+  bar, and one real `slow` test. faster-whisper is imported lazily so imports and
+  the net-free suite stay cheap.
 
 ### Contract
 - `.listen.json` **schemaVersion 1.0.0** — superset of the razbiram-nlp
