@@ -4,6 +4,33 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — Open-URL import (the §8-scoped feature)
+
+### Done
+- `sources.py`: `fetch_audio(url, dest_dir, *, fetch=…, episode=…)` imports **one**
+  open source — a direct audio URL or a podcast **RSS enclosure**. Guardrails:
+  `guard_url` blocks non-http schemes and a **denylist of streaming/DRM hosts**
+  (YouTube/Spotify/SoundCloud/…); the final URL is re-checked **after redirects**;
+  platform/HTML pages are refused (never resolved to media). The HTTP GET is one
+  injectable seam (`_default_fetch`, size/time-capped), so all decision logic is
+  net-free tested.
+- CLI: `process` gains `--url` + `--episode`; `--audio`/`--url` are mutually
+  exclusive. Fetched audio lands next to `--out` (stays local for the viewer).
+- Tests: `test_sources.py` (10) — platform blocks, scheme blocks, classification,
+  enclosure pick/index, direct-audio fetch, RSS→enclosure fetch, HTML refusal,
+  redirect-to-blocked refusal. **40 Python tests green**, ruff + format clean.
+  Real fetch verified over a local `http.server` (downloaded the demo mp3).
+
+### Hub-check (ECOSYSTEM §3)
+- Stdlib only (urllib + ElementTree) — no new deps, nothing in the hub to reuse.
+
+### Next (M7 — Politur)
+- Own recorded example under `examples/sample-audio/` + committed
+  `sample.listen.json` + `SOURCES.md`; GIF/screenshots; README polish; transcript-
+  edit mode; fresh-clone acceptance.
+
+---
+
 ## Session 1 — M6 (Seed-Export) + §8 scoping
 
 ### Governance (BIBLE D6)

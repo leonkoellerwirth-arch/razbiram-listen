@@ -36,6 +36,13 @@ SemVer. The `.listen.json` document shape is versioned separately via
   JSON** and a **CrowdAnki `deck.json`** (razbiram-anki-compatible, front = lemma
   / back = gloss). Roundtrip-tested against razbiram-anki's own deck shape check.
 
+- **Open-URL import.** `process --url <direct-audio | podcast-RSS>` (with
+  `--episode N`) fetches one open source the user has rights to and transcribes it
+  locally; `--audio`/`--url` are mutually exclusive. A host **denylist actively
+  refuses streaming/DRM platforms** (YouTube, Spotify, SoundCloud, …), re-checked
+  after redirects, and platform/HTML pages are never resolved to media. Decision
+  logic is net-free unit-tested; the real fetch is a single injectable seam.
+
 ### Policy
 - **Briefing §8 scoped (author-authorised amendment):** importing a user-supplied
   **direct audio-file URL / podcast RSS enclosure** is allowed; **streaming/DRM

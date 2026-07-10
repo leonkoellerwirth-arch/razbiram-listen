@@ -50,6 +50,20 @@ razbiram-listen process --audio episode.mp3 --gloss de --out episode.listen.json
 # then open the viewer and pick episode.listen.json + episode.mp3 (local, no upload)
 ```
 
+### Sources: local files or open URLs — never platforms
+
+Give `process` **one** source:
+
+- `--audio path.mp3` — a local file you already have, or
+- `--url <direct-audio-URL | podcast-RSS>` — an **open** source you have rights to
+  (a direct audio file, or a podcast RSS enclosure; add `--episode N` to pick one).
+  The tool fetches only that one named file, then transcribes locally.
+
+**Streaming/DRM platforms (YouTube, Spotify, SoundCloud, …) are refused** — those
+hosts are blocked and platform pages are never resolved to media. That is by
+design (see "Why BYO-audio"): razbiram-listen only touches audio that is yours or
+openly licensed.
+
 ## What it produces
 
 A single `.listen.json` — an `EnrichedDocument` (imported un-forked from the hub)

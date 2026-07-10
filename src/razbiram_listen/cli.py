@@ -14,6 +14,7 @@ from rich.console import Console
 
 from . import __version__
 from .pipeline import process_audio
+from .sources import SourceError, fetch_audio
 from .transcribe import DEFAULT_MODEL
 
 
@@ -27,9 +28,23 @@ def main() -> None:
 @click.option(
     "--audio",
     "audio",
-    required=True,
+    default=None,
     type=click.Path(exists=True, dir_okay=False, path_type=Path),
     help="Local audio file to process (never uploaded).",
+)
+@click.option(
+    "--url",
+    "url",
+    default=None,
+    help="Open audio URL to import: a direct audio file or a podcast RSS feed you "
+    "have rights to. Streaming/DRM platforms (YouTube, Spotify, …) are refused.",
+)
+@click.option(
+    "--episode",
+    "episode",
+    type=int,
+    default=None,
+    help="With an RSS --url: 1-based episode to pick (default: newest).",
 )
 @click.option(
     "--out",
@@ -48,9 +63,32 @@ def main() -> None:
     "--model", "model", default=DEFAULT_MODEL, show_default=True, help="Whisper model size."
 )
 @click.option("--language", "language", default="bg", show_default=True, help="Spoken language.")
-def process(audio: Path, out: Path, gloss: str | None, model: str, language: str) -> None:
-    """Transcribe, enrich, and align AUDIO into a .listen.json."""
+def process(
+    audio: Path | None,
+    url: str | None,
+    episode: int | None,
+    out: Path,
+    gloss: str | None,
+    model: str,
+    language: str,
+) -> None:
+    """Transcribe, enrich, and align audio into a .listen.json.
+
+    Provide exactly one source: a local --audio file, or an open --url (a direct
+    audio file or a podcast RSS enclosure). The audio never leaves your machine.
+    """
     console = Console()
+    if (audio is None) == (url is None):
+        raise click.UsageError("Gib genau eine Quelle an: --audio ODER --url.")
+
+    if url is not None:
+        try:
+            audio = fetch_audio(url, dest_dir=out.parent, episode=episode)
+        except SourceError as err:
+            raise click.ClickException(str(err)) from err
+        console.print(f"[green]↓[/green] geladen: [bold]{audio.name}[/bold]")
+
+    assert audio is not None
     console.print(f"[bold]Processing[/bold] {audio.name} (model: {model}) …")
 
     result = process_audio(audio, gloss_lang=gloss, model_size=model, language=language)
