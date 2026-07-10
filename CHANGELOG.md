@@ -1,0 +1,16 @@
+# Changelog
+
+All notable changes to razbiram-listen. Format: [Keep a Changelog](https://keepachangelog.com/),
+SemVer. The `.listen.json` document shape is versioned separately via
+`schemaVersion` (see `SCHEMA_VERSION` in `models.py`).
+
+## [Unreleased]
+
+### Added
+- **M1 — Models + scaffold.** `ListenDocument` (an `EnrichedDocument` extended
+  with `timings` and `audioRef`), `schemaVersion` 1.0.0, package scaffold,
+  contract tests, net-free CI (ruff + pytest), project docs.
+
+### Contract
+- `.listen.json` **schemaVersion 1.0.0** — superset of the razbiram-nlp
+  `EnrichedDocument` read against `razbiram-nlp@v0.1.0`.

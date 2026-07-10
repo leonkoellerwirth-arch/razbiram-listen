@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Whisper model caches (downloaded on first use, never committed)
+.whisper_cache/
+models/
+
+# Node / Vite viewer (M5)
+viewer/node_modules/
+viewer/dist/
+viewer/.vite/
+
+# Local audio the user brings — BYO-audio is never committed (Briefing §8)
+*.mp3
+*.wav
+*.m4a
+*.ogg
+*.flac
+# ...except explicitly CC-licensed / own example assets tracked under examples/
+!examples/sample-audio/**
+
+# Env / secrets (ECOSYSTEM §7 — secrets only via env, never in the repo)
+.env
+.env.local
+
+# OS
+.DS_Store
