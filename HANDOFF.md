@@ -6,20 +6,65 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ## ▶ Resume here (current state)
 
-**M1–M6 + open-URL import + studio mode are done, tested, and pushed to `main`.**
-43 Python + 17 viewer tests green; ruff/format clean. Nothing uncommitted.
+**v0.1.0 released; then v0.2.0 — razbiram-nlp made an optional enrichment plugin —
+built, verified, committed on `main` (pushed through Phase 3; the 0.2.0 tag/release
+is the open step).** Gate green (ruff/format, pytest core+enrich, viewer build+tests).
 
-- **Try it:** `razbiram-listen studio` → browser → drop audio → read (README leads
-  with this). Full-quality glossing needs Ollama + `classla` + the hub
-  `data/`+`config/` env vars (README "Glosses & CEFR" + `.env.example`).
+- **What changed (0.2.0):** the core (transcribe → align → karaoke) now runs with
+  **no razbiram-nlp installed**. `razbiram-nlp` is the optional `[enrich]` extra;
+  `razbiram_listen.contract` is a drift-guarded shape-compatible copy of
+  `EnrichedDocument` (`test_contract_compat.py`); `segment.build_core_document`
+  builds a doc from Whisper alone; `enrichment.py` is the only hub importer.
+  Enrichment is opt-in (CLI `--enrich`, studio default "nur Transkript") with honest
+  **"sentence X of N"** progress (verified 0/8→8/8 against Ollama). See **BIBLE D7**
+  + hub **ADR 005** draft (`docs/hub-adr-005-nlp-optional-plugin.md`).
+- **Open now:** cut the **v0.2.0 tag + GitHub release** (Phase 4 finish). Then file
+  ADR 005 into `razbiram-nlp/docs/adr/` (hub push — owner decides).
+- **Try it:** `razbiram-listen studio` → drop audio → instant synced transcript;
+  switch the dropdown to Deutsch for glosses/CEFR (needs `[enrich]` + Ollama).
 - **Next milestone — M7 (Politur):** own recorded Bulgarian example under
   `examples/sample-audio/` + committed `sample.listen.json` + `SOURCES.md`;
-  GIF/screenshots (light+dark); README polish; **transcript-edit mode** in the
-  viewer; fresh-clone acceptance.
+  GIF/screenshots (light+dark); **transcript-edit mode** in the viewer (the aligner
+  is already content-based so it re-fits after edits); fresh-clone acceptance.
+  Transcript quality on hard audio (Whisper `small`) is the known limiter — a
+  selectable larger model is part of M7.
 - **Deferred follow-ups:** package `viewer/dist` for a real pip install (studio
-  serves it from the repo layout today); ask the hub to ship `data/`+`config/`
-  (family-wide ADR); "process another file" reset in studio; the approved open-URL
-  import could grow a curated legal-podcast list.
+  serves it from the repo layout today); ask the hub to ship a JSON Schema +
+  `schemaVersion` (would replace listen's hand-kept `contract.py`); "process another
+  file" reset in studio.
+
+---
+
+## Session 2 — razbiram-nlp as an optional enrichment plugin (v0.2.0)
+
+### Why
+- Owner: the core value is a **clean transcript + time-accurate alignment**; nlp
+  already enriches brilliantly, so the two should combine "like an adapter/plugin".
+  On a real 4-min file the enrich stage looked frozen ("als nichts passiert") and the
+  hub was a hard dependency even for the transcript-only path.
+
+### Done (4 phases, each gate-green + verified)
+1. **Decouple** — `contract.py` (shape-compatible copy, drift-guarded by
+   `test_contract_compat.py`), `segment.build_core_document` (hub-free doc from
+   Whisper), `enrichment.py` (only hub importer), pipeline `enrich=False` default.
+   `razbiram-nlp` → `[enrich]` extra. Verified: with the hub hidden, core emits a
+   valid `.listen.json` at 100% coverage; enrich request raises a clear error.
+2. **Honest progress** — enrich the cheap stages first, then `apply_glosses` with a
+   wrapped provider reporting `(done, total)` via `plan_glosses`. Verified 0/8→8/8
+   against Ollama (aya-expanse:8b), correct glosses + A2 band + morphology.
+3. **Surface it** — CLI `--enrich` (+ guard + progress + mode line); server `/health`
+   `enrichAvailable`, `/process` opt-in; studio default core, translation gated on
+   availability, progress bar maps the real fraction (indeterminate → honest %).
+   Verified via curl: core `/process` has no enrich stage; enrich streams fractions.
+4. **Governance/docs** — BIBLE D7, ADR 005 draft, README (plugin model), CHANGELOG
+   0.2.0, CI split into core (hub-free) + enrich (contract guard) jobs, version bump.
+
+### Hub-check record (ECOSYSTEM §3)
+- No reimplementation: enrichment uses hub `enrich_text`/`apply_glosses`/`plan_glosses`.
+  `contract.py` mirrors `razbiram_nlp/models.py` (mirror, not fork — CI-guarded).
+
+### Next
+- Cut v0.2.0 release; file ADR 005 in the hub; then M7 (own example + transcript-edit).
 
 ---
 

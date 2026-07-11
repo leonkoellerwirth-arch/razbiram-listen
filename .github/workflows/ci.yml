@@ -10,8 +10,8 @@ on:
 # language model. Real-model checks are marked `slow` and excluded here
 # (ECOSYSTEM §5).
 jobs:
-  python:
-    name: ruff + pytest
+  core:
+    name: core (no plugin) — ruff + pytest
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,7 +21,10 @@ jobs:
           python-version: "3.11"
           cache: pip
 
-      - name: Install (with the razbiram-nlp hub dependency)
+      # Core install: razbiram-nlp is NOT pulled (it is the optional [enrich]
+      # plugin), so this proves the core runs hub-free. The contract-compat and
+      # enrich tests importorskip razbiram_nlp and are skipped here.
+      - name: Install (core only)
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
@@ -32,7 +35,29 @@ jobs:
       - name: Ruff format check
         run: ruff format --check .
 
-      - name: Pytest (net-free)
+      - name: Pytest (net-free, core)
+        run: pytest
+
+  enrich:
+    name: enrich (plugin) — pytest + contract guard
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      # With the razbiram-nlp plugin installed, test_contract_compat runs and
+      # guards the listen contract copy against drift from the hub. Still net-free
+      # (no model downloads); `slow` real-model tests stay excluded.
+      - name: Install (with the [enrich] plugin)
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[enrich,dev]"
+
+      - name: Pytest (net-free, contract guard)
         run: pytest
 
   viewer:

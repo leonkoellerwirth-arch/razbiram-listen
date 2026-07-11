@@ -48,7 +48,23 @@ shared `EnrichedDocument` contract, extended with audio timings.
   is family-wide (ECOSYSTEM §7), this scoping is a hub-ADR candidate. See the §8
   amendment in `CLAUDE-CODE-BRIEFING-razbiram-listen.md`.
 
+- **D7 — razbiram-nlp is an optional enrichment plugin; the core runs hub-free.**
+  Author-authorised (2026-07-11). `razbiram-nlp` moved from a required dependency to
+  the `[enrich]` extra. The core (transcribe → align → karaoke) no longer imports the
+  hub: `ListenDocument` builds on `razbiram_listen.contract`, a **shape-compatible
+  copy** of `EnrichedDocument` (identical field names/JSON keys/defaults), guarded
+  against drift by `test_contract_compat.py` (round-trips a hub doc through the copy
+  when the plugin is installed). Enrichment is opt-in everywhere (studio defaults to
+  the synced-transcript core) and reports honest "sentence X of N" progress via the
+  hub's `plan_glosses` + a wrapped provider. This is a **mirror, not a fork** — it
+  exists only until the hub publishes a JSON Schema. Filed as hub **ADR 005**
+  (draft: `docs/hub-adr-005-nlp-optional-plugin.md`). Refines D2 (the pin now lives on
+  the `[enrich]` extra).
+
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
+- **ADR 005 (drafted) — nlp as optional enrichment plugin for listen** (see D7);
+  file `docs/hub-adr-005-nlp-optional-plugin.md` into `razbiram-nlp/docs/adr/`.
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
-  on `EnrichedDocument` (currently neither exists).
+  on `EnrichedDocument` (currently neither exists). This would replace listen's
+  hand-maintained `contract.py` copy with a generated/validated one (closes D7's cost).
 - `viewer-core` extraction (Studio ↔ Karaoke) only when Rule of Three triggers.

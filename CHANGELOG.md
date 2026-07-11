@@ -6,6 +6,38 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-07-11
+
+razbiram-nlp becomes an **optional enrichment plugin**: the core (transcript +
+timing + karaoke) runs with nothing else installed, and glosses/CEFR light up when
+the plugin is present — "the two tools help each other."
+
+### Changed
+- **razbiram-nlp is now the optional `[enrich]` extra**, not a required dependency.
+  `pip install razbiram-listen` gives the full synced-transcript karaoke with no
+  hub; `pip install "razbiram-listen[enrich]"` adds glosses/CEFR/morphology.
+- **Enrichment is opt-in everywhere.** CLI gains `--enrich/--no-enrich` (off by
+  default; `--gloss` implies it) with a clear message when the plugin is missing.
+  The studio defaults to "nur Transkript (schnell)"; Deutsch/English are offered
+  only when the plugin + a local LLM are available (`/health` reports it).
+
+### Added
+- **Honest "sentence X of N" progress** during glossing. Enrichment runs the cheap
+  stages first, then applies glosses via the hub's `apply_glosses` with a wrapped
+  provider reporting `(done, total)` per uncached LLM call (`plan_glosses`). The
+  studio bar maps the real fraction (indeterminate while analysing, then honest %),
+  replacing the fixed 75% that looked frozen.
+- **`razbiram_listen.contract`** — a shape-compatible, drift-guarded copy of the
+  `EnrichedDocument` contract so the core builds documents without the hub;
+  `test_contract_compat.py` round-trips a hub document through it when the plugin is
+  installed. **`segment.build_core_document`** builds a document straight from
+  Whisper. **`razbiram_listen.enrichment`** is the only module importing the hub.
+
+### Governance
+- Recorded as **BIBLE D7** and hub **ADR 005** (draft:
+  `docs/hub-adr-005-nlp-optional-plugin.md`). This is a mirror of the family
+  contract, not a fork — guarded by CI until the hub publishes a JSON Schema.
+
 ## [0.1.0] — 2026-07-11
 
 First tagged release: the end-to-end studio works — drop a local Bulgarian audio

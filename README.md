@@ -3,11 +3,12 @@
 **Listen to any Bulgarian audio and understand it word by word — locally, privately, with a learning loop.**
 
 Bring your own audio (a podcast, an audiobook, your own recording); razbiram-listen
-transcribes it locally with Whisper, enriches the transcript through the
-[razbiram-nlp](https://github.com/leonkoellerwirth-arch/razbiram-nlp) engine
-(lemma, part of speech, gloss, heuristic CEFR band), and plays it back in a synced
-**Karaoke reading view**: the current word highlighted, hover for meaning, one
-click to seed a vocabulary card.
+transcribes it locally with Whisper, aligns every word to the audio, and plays it
+back in a synced **Karaoke reading view**: the current word highlighted, one click
+to seed a vocabulary card. That core runs on its own. Install the optional
+[razbiram-nlp](https://github.com/leonkoellerwirth-arch/razbiram-nlp) plugin
+(`pip install "razbiram-listen[enrich]"`) and it lights up with **glosses, lemma,
+part of speech, and heuristic CEFR bands** — the two tools simply help each other.
 
 <!-- M7: animated GIF of the Karaoke view (light + dark) goes here — the feature sells visually or not at all. -->
 ![Karaoke view — coming in M7](docs/img/karaoke-placeholder.png)
@@ -22,15 +23,16 @@ actually study from — that is exactly the normal case.
 
 ## Part of the razbiram ecosystem
 
-razbiram-nlp is the **engine**; razbiram-anki is the **card bridge**;
+razbiram-nlp is the **enrichment engine**; razbiram-anki is the **card bridge**;
 razbiram-listen is the **audio entry gate**. All three speak one contract — the
-`EnrichedDocument` JSON (here extended with audio timings).
+`EnrichedDocument` JSON (here extended with audio timings). razbiram-listen owns
+the transcript + timing; razbiram-nlp is an **optional plugin** that enriches it.
 
 ```mermaid
 flowchart LR
     A[Your audio file] --> L[razbiram-listen]
-    L -->|Whisper transcript| E[razbiram-nlp]
-    E -->|EnrichedDocument| L
+    L -.->|"optional: [enrich]"| E[razbiram-nlp]
+    E -.->|glosses · CEFR| L
     L --> J[".listen.json<br/>(EnrichedDocument + timings)"]
     J --> V[Karaoke viewer]
     J --> K[razbiram-anki → deck]
@@ -42,25 +44,35 @@ flowchart LR
 ## Quickstart
 
 **The easy way — one step.** Start the studio, then drag an audio file into the
-browser; it transcribes and translates it for you, with a progress bar. No files
+browser; it transcribes and syncs it for you, with a live progress bar. No files
 to juggle, no flags to type. Everything stays on your machine.
 
 ```bash
+# Core: transcript + timing + karaoke (no plugin needed)
 pip install git+https://github.com/leonkoellerwirth-arch/razbiram-listen
+
+# Optional: add glosses + CEFR via the razbiram-nlp plugin
+pip install "razbiram-listen[enrich] @ git+https://github.com/leonkoellerwirth-arch/razbiram-listen"
+
 razbiram-listen studio        # opens the browser; drop an audio file → read it
 ```
+
+In the studio, translation & CEFR default to **off** for an instant synced
+transcript; switch the dropdown to Deutsch/English to enrich (needs the `[enrich]`
+plugin + a local Ollama model, and shows honest "sentence X of N" progress).
 
 <details>
 <summary>Power-user / scripting: the CLI</summary>
 
 ```bash
+# Core: a synced transcript, no plugin required
+razbiram-listen process --audio episode.mp3 --out episode.listen.json
+
+# Enriched: add glosses + CEFR (needs the [enrich] plugin)
 razbiram-listen process --audio episode.mp3 --gloss de --out episode.listen.json
 # then open the viewer and load episode.listen.json + episode.mp3 (local, no upload)
 ```
 </details>
-
-Glosses use a local LLM (Ollama); the studio auto-picks a multilingual model.
-See "Glosses & CEFR" below for the optional morphology/CEFR extras.
 
 ### Sources: local files or open URLs — never platforms
 
@@ -76,23 +88,31 @@ hosts are blocked and platform pages are never resolved to media. That is by
 design (see "Why BYO-audio"): razbiram-listen only touches audio that is yours or
 openly licensed.
 
-### Glosses & CEFR — fully local
+### Glosses & CEFR — the optional `[enrich]` plugin, fully local
 
-Transcription and alignment are always offline. Glosses (`--gloss de`/`en`) use a
-**local LLM via [Ollama](https://ollama.com)** — no cloud. Pick the model with
-`--gloss-model` (e.g. a multilingual one like `aya-expanse:8b`):
+Transcription and alignment are always offline and need no plugin. Enrichment
+(glosses, lemma/POS, CEFR) is the **optional razbiram-nlp plugin**:
+
+```bash
+pip install "razbiram-listen[enrich] @ git+https://github.com/leonkoellerwirth-arch/razbiram-listen"
+```
+
+Glosses (`--gloss de`/`en`, which imply `--enrich`) then use a **local LLM via
+[Ollama](https://ollama.com)** — no cloud. Pick the model with `--gloss-model`
+(e.g. a multilingual one like `aya-expanse:8b`):
 
 ```bash
 razbiram-listen process --audio ep.mp3 --gloss de --gloss-model aya-expanse:8b --out ep.listen.json
 ```
 
-Stages degrade gracefully to what your install has:
+With the plugin installed, stages still degrade gracefully to what your machine has:
 
 - **Morphology** (lemma / part of speech, and sharper CEFR) needs the optional
   `classla` extra: `pip install classla` (downloads a Bulgarian model once).
 - **Difficulty / vocab** (document + per-word CEFR bands) need the hub's data files;
   set `RAZBIRAM_NLP_DATA_DIR` / `RAZBIRAM_NLP_CONFIG_DIR` to a razbiram-nlp checkout.
 - Without either, you still get sentence-level translations.
+- Without the plugin at all, you still get the full synced-transcript karaoke.
 
 ## What it produces
 
