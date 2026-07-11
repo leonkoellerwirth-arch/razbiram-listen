@@ -147,6 +147,17 @@ body {
 .rz-progress-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
 .rz-progress-bar { height: 100%; width: 0%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
 .rz-progress.is-error .rz-progress-bar { background: var(--danger, var(--primary)); }
+/* Indeterminate: an analysis phase with no fraction yet — a moving stripe so the
+   bar never looks frozen while the machine is working. */
+.rz-progress.is-indeterminate .rz-progress-bar {
+  width: 35%;
+  transition: none;
+  animation: rz-indeterminate 1.1s ease-in-out infinite;
+}
+@keyframes rz-indeterminate {
+  0% { margin-left: -35%; }
+  100% { margin-left: 100%; }
+}
 
 /* --- transport -------------------------------------------------------------- */
 .rz-transport { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }

@@ -147,24 +147,29 @@ function buildHeader(doc: ListenDocument, root: HTMLElement): HTMLElement {
     badge.textContent = band;
     meta.appendChild(badge);
   }
+  // The gloss language actually present (core mode has none → no translation UI).
+  const glossLang = doc.sentences.find((s) => s.gloss?.text)?.gloss?.lang ?? null;
   const dir = document.createElement("span");
   dir.className = "rz-faint";
-  dir.textContent = `${doc.lang ?? "bg"} → de`;
+  dir.textContent = glossLang ? `${doc.lang ?? "bg"} → ${glossLang}` : (doc.lang ?? "bg");
   meta.appendChild(dir);
 
-  const toggle = document.createElement("button");
-  toggle.className = "rz-btn rz-translate";
-  toggle.type = "button";
-  toggle.setAttribute("aria-pressed", "false");
-  toggle.textContent = "Show translation";
-  toggle.addEventListener("click", () => {
-    const on = root.dataset.translate === "on";
-    root.dataset.translate = on ? "off" : "on";
-    toggle.setAttribute("aria-pressed", on ? "false" : "true");
-    toggle.textContent = on ? "Show translation" : "Hide translation";
-  });
+  head.appendChild(meta);
 
-  head.append(meta, toggle);
+  if (glossLang) {
+    const toggle = document.createElement("button");
+    toggle.className = "rz-btn rz-translate";
+    toggle.type = "button";
+    toggle.setAttribute("aria-pressed", "false");
+    toggle.textContent = "Show translation";
+    toggle.addEventListener("click", () => {
+      const on = root.dataset.translate === "on";
+      root.dataset.translate = on ? "off" : "on";
+      toggle.setAttribute("aria-pressed", on ? "false" : "true");
+      toggle.textContent = on ? "Show translation" : "Hide translation";
+    });
+    head.appendChild(toggle);
+  }
   return head;
 }
 

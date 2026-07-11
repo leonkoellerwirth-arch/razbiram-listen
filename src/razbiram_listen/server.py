@@ -1,11 +1,13 @@
 """The local 'studio' server — one step: drop audio in the browser, read it.
 
 Binds to 127.0.0.1 only. It serves the built viewer AND exposes ``POST /process``:
-the browser sends an audio file's bytes to localhost, the server runs the pipeline
-(transcribe → enrich → gloss → align) and **streams progress**, then returns the
-``.listen.json``. Still local-first — nothing leaves the machine except the call to
-the local Ollama gloss provider. The audio plays from the browser's own object URL;
-only its bytes are handed to localhost for transcription.
+the browser sends an audio file's bytes to localhost, the server transcribes and
+aligns them and **streams progress**, then returns the ``.listen.json``. Enrichment
+(glosses/CEFR via the optional razbiram-nlp plugin) is opt-in per request; without
+it the core still returns a synced transcript instantly. Still local-first —
+nothing leaves the machine except the call to the local Ollama gloss provider. The
+audio plays from the browser's own object URL; only its bytes are handed to
+localhost for transcription.
 
 Progress and result are streamed as newline-delimited JSON (one event per line),
 read by the viewer via a ``fetch`` stream reader.
@@ -21,6 +23,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
+from . import enrichment
 from .pipeline import process_audio
 
 _CTYPES = {
@@ -75,7 +78,14 @@ class _Handler(BaseHTTPRequestHandler):
         if path == "/health":
             models = _ollama_models()
             self._json(
-                {"ok": True, "glossModels": models, "defaultGlossModel": pick_gloss_model(models)}
+                {
+                    "ok": True,
+                    # Enrichment (glosses/CEFR) needs the razbiram-nlp plugin AND a
+                    # local gloss model; the viewer offers translation only if both.
+                    "enrichAvailable": enrichment.is_available() and bool(models),
+                    "glossModels": models,
+                    "defaultGlossModel": pick_gloss_model(models),
+                }
             )
             return
         self._static(path)
@@ -86,9 +96,12 @@ class _Handler(BaseHTTPRequestHandler):
             self.send_error(404)
             return
         query = parse_qs(parsed.query)
-        gloss = (query.get("gloss", ["de"])[0]) or None
+        enrich_param = query.get("enrich", ["0"])[0] in ("1", "true", "yes", "on")
+        gloss = (query.get("gloss", [None])[0]) or None
         if gloss in ("none", ""):
             gloss = None
+        # Enrichment is opt-in; a chosen gloss language implies it.
+        want_enrich = enrich_param or gloss is not None
         model = query.get("model", [None])[0] or None
         filename = self.headers.get("X-Filename", "audio.m4a")
         length = int(self.headers.get("Content-Length", "0"))
@@ -103,13 +116,25 @@ class _Handler(BaseHTTPRequestHandler):
             self.wfile.write((json.dumps(event, ensure_ascii=False) + "\n").encode("utf-8"))
             self.wfile.flush()
 
+        if want_enrich and not enrichment.is_available():
+            emit(
+                {
+                    "stage": "error",
+                    "message": "Übersetzung/CEFR brauchen das razbiram-nlp-Plugin. "
+                    "Installiere es mit 'pip install razbiram-listen[enrich]' — oder "
+                    "wähle „nur Transkript“ für den sofortigen synchronen Text.",
+                }
+            )
+            return
+
         tmp = Path(tempfile.mkdtemp(prefix="rzl_")) / _safe_name(filename)
         tmp.write_bytes(audio_bytes)
         try:
             result = process_audio(
                 tmp,
-                gloss_lang=gloss,
+                gloss_lang=gloss if want_enrich else None,
                 gloss_model=model,
+                enrich=want_enrich,
                 show_progress=False,
                 on_event=lambda stage, frac: emit({"stage": stage, "fraction": frac}),
             )

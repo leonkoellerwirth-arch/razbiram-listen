@@ -35,6 +35,7 @@ const studioDrop = el<HTMLElement>("studio-drop");
 const studioInput = el<HTMLInputElement>("studio-input");
 const studioGloss = el<HTMLSelectElement>("studio-gloss");
 const studioModel = el<HTMLSpanElement>("studio-model");
+const studioEnrichHint = el<HTMLParagraphElement>("studio-enrich-hint");
 const studioProgress = el<HTMLElement>("studio-progress");
 const studioProgressLabel = el<HTMLElement>("studio-progress-label");
 const studioProgressBar = el<HTMLElement>("studio-progress-bar");
@@ -133,11 +134,13 @@ function refreshLoadState(): void {
     noteHTML(
       `<strong>✓ Audio geladen:</strong> ${esc(audioName ?? "")}.<br>` +
         "Es fehlt das <strong>Transkript</strong> (<code>.listen.json</code>) — der Viewer " +
-        "transkribiert bewusst nicht selbst. Erzeuge es einmalig lokal (transkribiert + " +
-        "übersetzt; je nach Länge ein paar Minuten):<br>" +
+        "transkribiert bewusst nicht selbst. Erzeuge es einmalig lokal (synchroner " +
+        "Transkript-Modus, schnell):<br>" +
         `<code class="rz-cmd">razbiram-listen process --audio "${esc(audioName ?? "")}" ` +
-        `--gloss de --gloss-model aya-expanse:8b --out "${esc(base)}.listen.json"</code>` +
-        "Dann die erzeugte <code>.listen.json</code> oben in Slot 1 laden.",
+        `--out "${esc(base)}.listen.json"</code>` +
+        "Für Übersetzung &amp; CEFR <code>--gloss de --gloss-model aya-expanse:8b</code> " +
+        "ergänzen (braucht <code>razbiram-listen[enrich]</code>). Dann die erzeugte " +
+        "<code>.listen.json</code> oben in Slot 1 laden.",
       true,
     );
   } else if (haveDoc && !haveAudio) {
@@ -168,10 +171,13 @@ function start(): void {
   updateSeedBar();
 
   const expected = d.audioRef?.filename;
+  const hasGloss = d.sentences.some((s) => s.gloss?.text);
   if (expected && audioName && expected !== audioName) {
     note(`Hinweis: Diese .listen.json wurde für „${expected}“ erzeugt, geladen ist „${audioName}“.`, true);
-  } else {
+  } else if (hasGloss) {
     note(`Bereit — ${d.sentences.length} Sätze. Play drücken; „Show translation“ zeigt die Übersetzung.`, false);
+  } else {
+    note(`Bereit — ${d.sentences.length} Sätze, synchroner Transkript-Modus. Play drücken.`, false);
   }
 
   cancelAnimationFrame(rafId);
@@ -287,7 +293,7 @@ function fmt(seconds: number): string {
 // sent to localhost, transcribed + translated with a live progress bar, then
 // shown. Falls back to the manual two-file loader when there's no server.
 async function initStudioMode(): Promise<void> {
-  let health: { defaultGlossModel?: string | null } | null = null;
+  let health: { defaultGlossModel?: string | null; enrichAvailable?: boolean } | null = null;
   try {
     const resp = await fetch("/health");
     if (resp.ok) health = await resp.json();
@@ -297,9 +303,23 @@ async function initStudioMode(): Promise<void> {
   if (!health) return; // manual mode: keep #loader
 
   glossModel = health.defaultGlossModel ?? null;
+  const enrichAvailable = health.enrichAvailable === true;
   loader.hidden = true;
   studio.hidden = false;
   studioModel.textContent = glossModel ? `Modell: ${glossModel}` : "kein lokales LLM gefunden";
+
+  // Translation & CEFR need the razbiram-nlp plugin (+ a local LLM). Without it the
+  // core still works: keep it selectable, but make the requirement clear.
+  if (!enrichAvailable) {
+    for (const opt of Array.from(studioGloss.options)) {
+      if (opt.value !== "none") opt.disabled = true;
+    }
+    studioGloss.value = "none";
+    studioEnrichHint.hidden = false;
+    studioEnrichHint.textContent =
+      "Übersetzung & CEFR: „pip install razbiram-listen[enrich]“ + ein lokales Ollama-Modell. " +
+      "Ohne das läuft der synchrone Transkript-Modus sofort.";
+  }
 
   studioDrop.addEventListener("click", () => studioInput.click());
   studioInput.addEventListener("change", () => {
@@ -326,11 +346,16 @@ async function studioProcess(file: File): Promise<void> {
   player.load(audioUrl);
 
   showProgress("Starte …", 0.02, false);
-  const gloss = studioGloss.value;
-  const modelParam = glossModel ? `&model=${encodeURIComponent(glossModel)}` : "";
+  const choice = studioGloss.value; // "none" → core mode; "de"/"en" → enrich
+  const wantEnrich = choice !== "none";
+  const params = new URLSearchParams({ enrich: wantEnrich ? "1" : "0" });
+  if (wantEnrich) {
+    params.set("gloss", choice);
+    if (glossModel) params.set("model", glossModel);
+  }
   let resp: Response;
   try {
-    resp = await fetch(`/process?gloss=${encodeURIComponent(gloss)}${modelParam}`, {
+    resp = await fetch(`/process?${params.toString()}`, {
       method: "POST",
       headers: { "X-Filename": file.name },
       body: file,
@@ -371,10 +396,20 @@ function handleStudioEvent(ev: {
       showProgress(`Transkribiere … ${Math.round((ev.fraction ?? 0) * 100)}%`, (ev.fraction ?? 0) * 0.6, false);
       break;
     case "enrich":
-      showProgress("Analysiere & übersetze (lokales LLM) …", 0.75, false);
+      if (ev.fraction == null) {
+        // Cheap analysis (morphology/CEFR) before glossing — no count yet.
+        showProgress("Analysiere (Morphologie & CEFR) …", 0.62, false, true);
+      } else {
+        // Honest translate progress: fraction = uncached gloss calls done / total.
+        showProgress(
+          `Übersetze … ${Math.round(ev.fraction * 100)}%`,
+          0.62 + ev.fraction * 0.32,
+          false,
+        );
+      }
       break;
     case "align":
-      showProgress("Richte Timings aus …", 0.92, false);
+      showProgress("Richte Timings aus …", 0.96, false);
       break;
     case "done":
       showProgress("Fertig", 1, false);
@@ -393,11 +428,17 @@ function handleStudioEvent(ev: {
   }
 }
 
-function showProgress(label: string, fraction: number, isError: boolean): void {
+function showProgress(
+  label: string,
+  fraction: number,
+  isError: boolean,
+  indeterminate = false,
+): void {
   studioProgress.hidden = false;
   studioProgress.classList.toggle("is-error", isError);
+  studioProgress.classList.toggle("is-indeterminate", indeterminate);
   studioProgressLabel.textContent = label;
-  studioProgressBar.style.width = `${Math.round(fraction * 100)}%`;
+  studioProgressBar.style.width = indeterminate ? "" : `${Math.round(fraction * 100)}%`;
 }
 
 initTheme();

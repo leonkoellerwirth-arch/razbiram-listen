@@ -38,7 +38,8 @@
         <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
         <p class="rz-muted" style="margin: 0 0 16px">
           Zieh eine Audiodatei hierher — sie wird <strong>lokal</strong> transkribiert und
-          übersetzt. Nichts verlässt deinen Rechner, kein Datei-Jonglieren.
+          zeitgenau an den Text ausgerichtet. Übersetzung &amp; CEFR sind optional.
+          Nichts verlässt deinen Rechner, kein Datei-Jonglieren.
         </p>
         <div class="rz-studio-drop" id="studio-drop" role="button" tabindex="0">
           <input id="studio-input" type="file" accept="audio/*" hidden />
@@ -47,15 +48,16 @@
           <div class="rz-faint" style="margin-top: 4px">oder klicken zum Auswählen</div>
         </div>
         <div class="rz-studio-opts">
-          <label class="rz-ctl">Übersetzung
+          <label class="rz-ctl">Übersetzung &amp; CEFR
             <select id="studio-gloss" class="rz-select">
+              <option value="none">nur Transkript (schnell)</option>
               <option value="de">Deutsch</option>
               <option value="en">English</option>
-              <option value="none">keine (nur Transkript)</option>
             </select>
           </label>
           <span class="rz-faint" id="studio-model"></span>
         </div>
+        <p class="rz-faint" id="studio-enrich-hint" hidden style="margin: 6px 0 0"></p>
         <div class="rz-progress" id="studio-progress" hidden>
           <div class="rz-progress-label" id="studio-progress-label">…</div>
           <div class="rz-progress-track"><div class="rz-progress-bar" id="studio-progress-bar"></div></div>
