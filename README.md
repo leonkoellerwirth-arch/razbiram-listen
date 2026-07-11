@@ -61,6 +61,19 @@ In the studio, translation & CEFR default to **off** for an instant synced
 transcript; switch the dropdown to Deutsch/English to enrich (needs the `[enrich]`
 plugin + a local Ollama model, and shows honest "sentence X of N" progress).
 
+### Queue & library — big files, saved for replay
+
+A song is quick; a film is not. The studio processes every drop as a **background
+job** shown in a queue panel beside the reader — drop several files and they run in
+parallel (bounded; `RAZBIRAM_LISTEN_WORKERS`, default 2). A short one auto-opens when
+done; a long one keeps running while you read something else.
+
+Every result is **saved locally** to a personal **library** (`$RAZBIRAM_LISTEN_HOME`,
+default `~/.razbiram-listen`) — the transcript *and* your audio — so you can replay it
+any time with one click, no re-dropping. Delete an entry, or just remove its audio to
+reclaim space (the transcript stays). Everything is on your machine: no upload, no
+cloud (local-first, BYO-audio).
+
 <details>
 <summary>Power-user / scripting: the CLI</summary>
 

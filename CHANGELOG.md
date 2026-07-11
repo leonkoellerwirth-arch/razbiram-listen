@@ -6,6 +6,32 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+## [0.3.0] — 2026-07-11
+
+Large audio (a film) no longer means a fragile 30-minute open connection: the studio
+runs **background jobs** with a **queue panel** and a **persistent local library** you
+can replay any time.
+
+### Added
+- **Background job queue.** The studio submits each drop as a job (`POST /jobs`) run by
+  a bounded worker pool (default 2, `RAZBIRAM_LISTEN_WORKERS`); a right-hand panel shows
+  live per-job progress. Drop several files → they process **in parallel**; a short one
+  auto-opens when done, a long one keeps running in the background.
+- **Persistent local library.** Every result is saved under `$RAZBIRAM_LISTEN_HOME`
+  (default `~/.razbiram-listen`) — the transcript **and** the audio — and is replayable
+  with one click, no re-dropping. Delete an entry or just its audio to reclaim space
+  (the transcript stays). Local-first: no upload, no cloud (BIBLE D8).
+- Audio is **range-served** (`GET /library/<id>/audio`, HTTP 206) so seeking works in
+  large files. New endpoints: `POST /jobs`, `GET /jobs`, `GET /library`,
+  `GET /library/<id>/result|audio`, `DELETE /library/<id>[/audio]`. Ids are
+  path-traversal-guarded; uploads stream to disk in chunks (never a multi-GB body in
+  memory). `library.py` + `jobs.py` are net-free unit-tested (parallelism proven).
+
+### Changed
+- The studio viewer is now a **two-column layout** (reader + queue/library sidebar),
+  collapsing to one column on narrow screens. It submits to `/jobs` instead of the
+  legacy streaming `/process` (which still works).
+
 ## [0.2.0] — 2026-07-11
 
 razbiram-nlp becomes an **optional enrichment plugin**: the core (transcript +

@@ -62,6 +62,18 @@ shared `EnrichedDocument` contract, extended with audio timings.
   `docs/hub-adr-005-nlp-optional-plugin.md`). Refines D2 (the pin now lives on the
   `[enrich]` extra).
 
+- **D8 — Background job queue + a persistent local library (keeps the user's own
+  audio).** Author-decided (2026-07-11). Large audio (a film) runs as a **background
+  job** (studio `POST /jobs` → a bounded worker pool, default 2,
+  `RAZBIRAM_LISTEN_WORKERS`) instead of a long synchronous request; a queue panel
+  shows status. Results are **saved locally** under `$RAZBIRAM_LISTEN_HOME` /
+  `~/.razbiram-listen` and replayable one-click. **The user's own audio is kept** in
+  the library (copied there) so replay needs no re-drop; it is **deletable per entry**
+  (transcript stays). This is consistent with **local-first / §8 BYO**: the audio is
+  the user's own file, stored only on their machine, never uploaded, and removable.
+  The audio is range-served (`/library/<id>/audio`, HTTP 206) so seeking works on
+  large files. Ids are path-traversal-guarded.
+
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
   on `EnrichedDocument` (currently neither exists). This would replace listen's

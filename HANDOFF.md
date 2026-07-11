@@ -6,22 +6,28 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ## ▶ Resume here (current state)
 
-**v0.1.0 released; then v0.2.0 — razbiram-nlp made an optional enrichment plugin —
-built, verified, committed on `main` (pushed through Phase 3; the 0.2.0 tag/release
-is the open step).** Gate green (ruff/format, pytest core+enrich, viewer build+tests).
+**Released v0.1.0 → v0.2.0 (nlp optional plugin). Now v0.3.0 — background job queue
++ persistent local library — built & verified (backend via curl, viewer logic via
+vitest), committed on `main`.** Gate green. **Open step: visual browser test of the
+new queue/library UI, then cut the v0.3.0 tag + release.**
 
-- **What changed (0.2.0):** the core (transcribe → align → karaoke) now runs with
-  **no razbiram-nlp installed**. `razbiram-nlp` is the optional `[enrich]` extra;
-  `razbiram_listen.contract` is a drift-guarded shape-compatible copy of
-  `EnrichedDocument` (`test_contract_compat.py`); `segment.build_core_document`
-  builds a doc from Whisper alone; `enrichment.py` is the only hub importer.
-  Enrichment is opt-in (CLI `--enrich`, studio default "nur Transkript") with honest
-  **"sentence X of N"** progress (verified 0/8→8/8 against Ollama). See **BIBLE D7**
-  + hub **ADR 005** draft (`docs/hub-adr-005-nlp-optional-plugin.md`).
-- **Done since:** v0.2.0 tag + GitHub release cut; **hub ADR 005 filed & pushed**
-  (`razbiram-nlp/docs/adr/005-nlp-optional-plugin-for-listen.md`, hub `618e0f0`).
-- **Try it:** `razbiram-listen studio` → drop audio → instant synced transcript;
-  switch the dropdown to Deutsch for glosses/CEFR (needs `[enrich]` + Ollama).
+- **What changed (0.3.0, BIBLE D8):** large audio runs as a **background job**
+  (studio `POST /jobs` → bounded worker pool, default 2, `RAZBIRAM_LISTEN_WORKERS`),
+  shown in a **queue panel** beside the reader; drop several → parallel. Results are
+  **saved to a local library** (`$RAZBIRAM_LISTEN_HOME`/`~/.razbiram-listen`), audio
+  kept for **one-click replay** (deletable per entry; transcript stays). Audio is
+  **range-served** (206) so seeking works on big files. New: `library.py`, `jobs.py`,
+  server endpoints (`/jobs`, `/library/...`), viewer `api.ts`/`queue.ts` + two-column
+  layout. Uploads stream to disk in chunks. Verified via curl (submit→done→library,
+  ranged 206, delete/remove-audio, traversal guard) + net-free unit tests.
+- **Not yet verified by me:** the browser interaction (drag-drop, live queue,
+  auto-open, seeking) — a live studio server is running for the owner to confirm.
+- **What changed (0.2.0):** the core runs with **no razbiram-nlp installed**;
+  `razbiram-nlp` is the optional `[enrich]` extra; `razbiram_listen.contract` is a
+  drift-guarded copy of `EnrichedDocument`; enrichment is opt-in with honest
+  "sentence X of N" progress. **BIBLE D7** + hub **ADR 005** (filed, hub `618e0f0`).
+- **Try it:** `razbiram-listen studio` → drop audio → it queues, processes in the
+  background, saves to the library, and replays with one click.
 - **Next milestone — M7 (Politur):** own recorded Bulgarian example under
   `examples/sample-audio/` + committed `sample.listen.json` + `SOURCES.md`;
   GIF/screenshots (light+dark); **transcript-edit mode** in the viewer (the aligner
@@ -32,6 +38,34 @@ is the open step).** Gate green (ruff/format, pytest core+enrich, viewer build+t
   serves it from the repo layout today); ask the hub to ship a JSON Schema +
   `schemaVersion` (would replace listen's hand-kept `contract.py`); "process another
   file" reset in studio.
+
+---
+
+## Session 3 — Background job queue + persistent local library (v0.3.0)
+
+### Why
+- Owner: audio files can be huge (a film). The synchronous `/process` (browser holds
+  the connection 30+ min) is wrong for that. Want a **queue** beside the main panel,
+  background jobs with status, and **local persistence** so results replay any time.
+- Decisions: **keep the audio** in the library (one-click replay, deletable) and
+  process **in parallel** (bounded worker pool).
+
+### Done (plan: `.claude/plans/glittery-exploring-whistle.md`)
+- **Backend:** `library.py` (on-disk store, traversal-guarded, hasAudio), `jobs.py`
+  (JobManager, bounded pool, chunked upload streaming, per-job progress → library),
+  `server.py` endpoints (`POST /jobs`, `GET /jobs`, `GET /library`,
+  `GET /library/<id>/result|audio` with **HTTP Range 206**, `DELETE`). Net-free tests
+  (`test_library.py`, `test_jobs.py`; parallelism proven via a barrier).
+- **Frontend:** two-column layout (reader + queue/library sidebar), `api.ts`,
+  `queue.ts` (pure helpers + renderers, `queue.test.ts`), `main.ts` submit→jobs,
+  poll, auto-open, `openLibraryItem` via range-served audio. Object-URL guard.
+- **Verified** (curl + unit): submit→done→library, ranged 206, delete/remove-audio,
+  traversal guard, parallel workers. Gate green (43+ py, 22 viewer tests).
+
+### Open
+- Browser visual test (drag-drop, live queue, auto-open, seeking) by the owner, then
+  cut v0.3.0. Follow-ups: resume interrupted jobs after restart; per-file "keep audio"
+  choice (currently always keep); library search/rename.
 
 ---
 
