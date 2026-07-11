@@ -122,6 +122,10 @@ class _Handler(BaseHTTPRequestHandler):
 
     def do_DELETE(self) -> None:
         parts = [p for p in urlparse(self.path).path.split("/") if p]
+        if len(parts) == 2 and parts[0] == "jobs":  # cancel a queued/running job
+            ok = self.jobs.cancel(parts[1])
+            self._json({"ok": ok}, status=200 if ok else 404)
+            return
         if len(parts) >= 2 and parts[0] == "library":
             entry_id = parts[1]
             if not library.is_valid_id(entry_id):

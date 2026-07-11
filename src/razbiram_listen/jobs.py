@@ -37,6 +37,10 @@ TranslateFn = Callable[..., str]
 WriteAudioFn = Callable[[Path], None]
 
 
+class JobCancelled(Exception):
+    """Raised inside a progress callback to abort a cancelled job cooperatively."""
+
+
 def _now_iso() -> str:
     return datetime.now(UTC).isoformat()
 
@@ -62,10 +66,11 @@ class Job:
     audio_path: str
     entry_id: str  # the library entry this job produces or updates
     kind: str = "process"  # process (audio → result) | translate (re-gloss an entry)
-    status: str = "queued"  # queued | running | done | error
+    status: str = "queued"  # queued | running | done | error | cancelled
     stage: str | None = None
     fraction: float | None = None
     error: str | None = None
+    cancel_requested: bool = False
     created_at: str = field(default_factory=_now_iso)
 
     def snapshot(self) -> dict:
@@ -173,6 +178,24 @@ class JobManager:
             job = self._jobs.get(job_id)
             return job.snapshot() if job else None
 
+    def cancel(self, job_id: str) -> bool:
+        """Request cancellation of a queued or running job (cooperative).
+
+        A queued job is skipped when a worker picks it up; a running job aborts at
+        its next progress callback. Returns True if the job was cancellable.
+        """
+        with self._lock:
+            job = self._jobs.get(job_id)
+            if job is None or job.status not in ("queued", "running"):
+                return False
+            job.cancel_requested = True
+            return True
+
+    def _is_cancelled(self, job_id: str) -> bool:
+        with self._lock:
+            job = self._jobs.get(job_id)
+            return bool(job and job.cancel_requested)
+
     def join(self) -> None:
         """Block until every queued job has finished (used by tests)."""
         self._queue.join()
@@ -191,6 +214,12 @@ class JobManager:
             job_id = self._queue.get()
             try:
                 self._run(job_id)
+            except JobCancelled:
+                self._update(job_id, status="cancelled", stage=None, fraction=None)
+                with self._lock:
+                    job = self._jobs.get(job_id)
+                if job is not None and job.kind == "process":
+                    library.discard(job.entry_id)  # drop the aborted upload
             except Exception as exc:  # a bad job must never kill the worker
                 self._update(job_id, status="error", error=f"{type(exc).__name__}: {exc}")
                 with self._lock:
@@ -207,6 +236,8 @@ class JobManager:
             job = self._jobs.get(job_id)
         if job is None:
             return
+        if job.cancel_requested:  # cancelled while still queued
+            raise JobCancelled
         if job.kind == "translate":
             self._run_translate(job)
         else:
@@ -216,6 +247,8 @@ class JobManager:
         self._update(job.id, status="running", stage="transcribe", fraction=0.0)
 
         def on_event(stage: str, fraction: float | None) -> None:
+            if self._is_cancelled(job.id):
+                raise JobCancelled
             self._update(job.id, stage=stage, fraction=fraction)
 
         result = self._process(
@@ -245,6 +278,8 @@ class JobManager:
         self._update(job.id, status="running", stage="enrich", fraction=None)
 
         def on_progress(done: int, total: int) -> None:
+            if self._is_cancelled(job.id):
+                raise JobCancelled
             self._update(job.id, stage="enrich", fraction=(done / total) if total else 1.0)
 
         stored = library.read_result(job.entry_id)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import threading
+import time
 
 import pytest
 
@@ -143,6 +144,69 @@ def test_translate_job_reglosses_existing_entry(lib_home) -> None:
     meta = library.read_meta(entry)
     assert meta["glossLang"] == "de"
     assert set(meta["langs"]) == {"de", "en"}  # both remembered
+
+
+def test_cancel_running_job_aborts_and_discards(lib_home) -> None:
+    started = threading.Event()
+
+    def fake_process(audio, *, gloss_lang, gloss_model, enrich, show_progress, on_event):
+        started.set()
+        for _ in range(200):  # keep ticking; a cancel raises at the next on_event
+            on_event("transcribe", 0.2)
+            time.sleep(0.01)
+        return _FakeResult()
+
+    mgr = jobs.JobManager(workers=1, process=fake_process)
+    mgr.start()
+    job_id = mgr.submit(
+        filename="film.mp4",
+        enrich=False,
+        gloss=None,
+        model=None,
+        write_audio=lambda p: p.write_bytes(b"d"),
+    )
+    assert started.wait(2)
+    assert mgr.cancel(job_id) is True
+    mgr.join()
+
+    assert mgr.get(job_id)["status"] == "cancelled"
+    assert library.list_entries() == []  # the aborted upload is discarded
+
+
+def test_cancel_queued_job_before_it_runs(lib_home) -> None:
+    release = threading.Event()
+
+    def blocking(audio, **_kw):
+        release.wait(2)  # one worker, held on the first job
+        return _FakeResult()
+
+    mgr = jobs.JobManager(workers=1, process=blocking)
+    mgr.start()
+    first = mgr.submit(
+        filename="a.mp3",
+        enrich=False,
+        gloss=None,
+        model=None,
+        write_audio=lambda p: p.write_bytes(b"d"),
+    )
+    queued = mgr.submit(
+        filename="b.mp3",
+        enrich=False,
+        gloss=None,
+        model=None,
+        write_audio=lambda p: p.write_bytes(b"d"),
+    )
+    assert mgr.cancel(queued) is True  # still waiting behind the first
+    release.set()
+    mgr.join()
+
+    assert mgr.get(queued)["status"] == "cancelled"
+    assert mgr.get(first)["status"] == "done"
+
+
+def test_cancel_unknown_job_returns_false(lib_home) -> None:
+    mgr = jobs.JobManager(workers=1, process=lambda *a, **k: _FakeResult())
+    assert mgr.cancel("nope") is False
 
 
 def test_workers_run_in_parallel(lib_home) -> None:
