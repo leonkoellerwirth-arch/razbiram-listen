@@ -25,6 +25,20 @@ def main() -> None:
 
 
 @main.command()
+@click.option("--port", default=7332, show_default=True, help="Local port.")
+@click.option("--no-open", is_flag=True, help="Don't open the browser automatically.")
+def studio(port: int, no_open: bool) -> None:
+    """Open the studio: drop an audio file in the browser and read it — one step.
+
+    Starts a local server (127.0.0.1 only) that serves the viewer and does the
+    transcription + translation for you. No files to juggle, no flags to type.
+    """
+    from .server import serve
+
+    serve(port=port, open_browser=not no_open)
+
+
+@main.command()
 @click.option(
     "--audio",
     "audio",

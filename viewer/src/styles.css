@@ -130,6 +130,24 @@ body {
   white-space: nowrap; color: var(--text);
 }
 
+/* --- studio (server mode) --------------------------------------------------- */
+.rz-studio-drop {
+  border: 2px dashed var(--hairline); border-radius: var(--r-lg); background: var(--surface-2);
+  padding: 2.4rem 1.5rem; text-align: center; cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.rz-studio-drop:hover, .rz-studio-drop.is-over { border-color: var(--primary); background: var(--primary-soft); }
+.rz-studio-opts { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+.rz-select {
+  font: inherit; font-weight: 700; padding: 6px 10px; border-radius: var(--r-md);
+  border: 1px solid var(--hairline); background: var(--surface); color: var(--text); cursor: pointer;
+}
+.rz-progress { margin-top: 16px; }
+.rz-progress-label { font-weight: 700; margin-bottom: 8px; }
+.rz-progress-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
+.rz-progress-bar { height: 100%; width: 0%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
+.rz-progress.is-error .rz-progress-bar { background: var(--danger, var(--primary)); }
+
 /* --- transport -------------------------------------------------------------- */
 .rz-transport { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
 .rz-ctl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); font-size: 14px; }

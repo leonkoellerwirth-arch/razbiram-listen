@@ -41,14 +41,26 @@ flowchart LR
 
 ## Quickstart
 
-> Milestone M1 (models + scaffold) is in place; the `process` command lands in M4.
-> Once it does, the flow is three steps:
+**The easy way — one step.** Start the studio, then drag an audio file into the
+browser; it transcribes and translates it for you, with a progress bar. No files
+to juggle, no flags to type. Everything stays on your machine.
 
 ```bash
 pip install git+https://github.com/leonkoellerwirth-arch/razbiram-listen
-razbiram-listen process --audio episode.mp3 --gloss de --out episode.listen.json
-# then open the viewer and pick episode.listen.json + episode.mp3 (local, no upload)
+razbiram-listen studio        # opens the browser; drop an audio file → read it
 ```
+
+<details>
+<summary>Power-user / scripting: the CLI</summary>
+
+```bash
+razbiram-listen process --audio episode.mp3 --gloss de --out episode.listen.json
+# then open the viewer and load episode.listen.json + episode.mp3 (local, no upload)
+```
+</details>
+
+Glosses use a local LLM (Ollama); the studio auto-picks a multilingual model.
+See "Glosses & CEFR" below for the optional morphology/CEFR extras.
 
 ### Sources: local files or open URLs — never platforms
 

@@ -52,6 +52,7 @@ def process_audio(
     transcriber: Transcriber | None = None,
     enrich: EnrichFn | None = None,
     show_progress: bool = True,
+    on_event: Callable[[str, float | None], None] | None = None,
 ) -> ProcessResult:
     """Run the full pipeline on one local audio file.
 
@@ -73,11 +74,20 @@ def process_audio(
     transcriber = transcriber or Transcriber(model_size)
     enrich = enrich or _make_enrich(gloss_model)
 
+    def emit(stage: str, fraction: float | None) -> None:
+        if on_event:
+            on_event(stage, fraction)
+
+    emit("transcribe", 0.0)
+    on_progress = (lambda f: emit("transcribe", f)) if on_event else None
     transcription: Transcription = transcriber.transcribe(
-        audio, language=language, show_progress=show_progress
+        audio, language=language, show_progress=show_progress, on_progress=on_progress
     )
+    emit("enrich", None)
     doc = enrich(transcription.text, gloss_lang=gloss_lang)
+    emit("align", None)
     alignment = align(doc, transcription)
+    emit("done", 1.0)
 
     audio_ref = AudioRef(filename=Path(audio).name, duration_s=transcription.duration)
     document = ListenDocument.from_enriched(doc, audio_ref=audio_ref, timings=alignment.timings)

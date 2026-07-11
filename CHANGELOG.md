@@ -36,6 +36,12 @@ SemVer. The `.listen.json` document shape is versioned separately via
   JSON** and a **CrowdAnki `deck.json`** (razbiram-anki-compatible, front = lemma
   / back = gloss). Roundtrip-tested against razbiram-anki's own deck shape check.
 
+- **Studio mode — one-step, no CLI.** `razbiram-listen studio` starts a local
+  server (127.0.0.1 only) that serves the viewer and does the work: drag an audio
+  file into the browser and it is transcribed + translated with a **live progress
+  bar**, then shown — no `.listen.json` to juggle, no flags to type. The audio
+  plays from the browser's own object URL; only its bytes go to localhost. The
+  server auto-detects a local Ollama gloss model. `process` remains for scripting.
 - **Viewer load guidance.** The viewer now always says what's missing: loading
   only audio explains that it does not transcribe itself and shows the exact
   `razbiram-listen process …` command to generate the `.listen.json`; loading only

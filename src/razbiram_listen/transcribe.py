@@ -19,7 +19,7 @@ Design
 
 from __future__ import annotations
 
-from collections.abc import Iterable, Iterator
+from collections.abc import Callable, Iterable, Iterator
 from pathlib import Path
 from typing import Protocol
 
@@ -119,11 +119,13 @@ class Transcriber:
         language: str = "bg",
         beam_size: int = 5,
         show_progress: bool = True,
+        on_progress: Callable[[float], None] | None = None,
     ) -> Transcription:
         """Transcribe ``audio`` and return a :class:`Transcription`.
 
         Word timestamps are always on. faster-whisper transcribes lazily as the
         segment generator is consumed, so progress is reported by walking it.
+        ``on_progress`` receives a 0..1 fraction as segments complete (for a UI).
         """
         model = self._get_model()
         segment_iter, info = model.transcribe(
@@ -134,10 +136,11 @@ class Transcriber:
         )
         duration = float(getattr(info, "duration", 0.0) or 0.0)
 
-        segments = [
-            _map_segment(seg)
-            for seg in _with_progress(segment_iter, duration, enabled=show_progress)
-        ]
+        segments = []
+        for seg in _with_progress(segment_iter, duration, enabled=show_progress):
+            segments.append(_map_segment(seg))
+            if on_progress and duration > 0:
+                on_progress(min(float(seg.end) / duration, 1.0))
         text = "".join(seg.text for seg in segments).strip()
         return Transcription(
             text=text,

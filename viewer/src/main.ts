@@ -30,9 +30,18 @@ const seedCount = el<HTMLSpanElement>("seed-count");
 const seedExportSeed = el<HTMLButtonElement>("seed-export-seed");
 const seedExportDeck = el<HTMLButtonElement>("seed-export-deck");
 const seedClear = el<HTMLButtonElement>("seed-clear");
+const studio = el<HTMLElement>("studio");
+const studioDrop = el<HTMLElement>("studio-drop");
+const studioInput = el<HTMLInputElement>("studio-input");
+const studioGloss = el<HTMLSelectElement>("studio-gloss");
+const studioModel = el<HTMLSpanElement>("studio-model");
+const studioProgress = el<HTMLElement>("studio-progress");
+const studioProgressLabel = el<HTMLElement>("studio-progress-label");
+const studioProgressBar = el<HTMLElement>("studio-progress-bar");
 
 const player = new Player();
 const basket = new SeedBasket();
+let glossModel: string | null = null;
 let doc: ListenDocument | null = null;
 let audioName: string | null = null;
 let audioUrl: string | null = null;
@@ -273,4 +282,123 @@ function fmt(seconds: number): string {
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
 }
 
+// --- studio mode (served by `razbiram-listen studio`) ------------------------
+// When a local studio server is present, one drop does everything: the audio is
+// sent to localhost, transcribed + translated with a live progress bar, then
+// shown. Falls back to the manual two-file loader when there's no server.
+async function initStudioMode(): Promise<void> {
+  let health: { defaultGlossModel?: string | null } | null = null;
+  try {
+    const resp = await fetch("/health");
+    if (resp.ok) health = await resp.json();
+  } catch {
+    health = null;
+  }
+  if (!health) return; // manual mode: keep #loader
+
+  glossModel = health.defaultGlossModel ?? null;
+  loader.hidden = true;
+  studio.hidden = false;
+  studioModel.textContent = glossModel ? `Modell: ${glossModel}` : "kein lokales LLM gefunden";
+
+  studioDrop.addEventListener("click", () => studioInput.click());
+  studioInput.addEventListener("change", () => {
+    const file = studioInput.files?.[0];
+    if (file) void studioProcess(file);
+  });
+  studioDrop.addEventListener("dragover", (e) => {
+    e.preventDefault();
+    studioDrop.classList.add("is-over");
+  });
+  studioDrop.addEventListener("dragleave", () => studioDrop.classList.remove("is-over"));
+  studioDrop.addEventListener("drop", (e) => {
+    e.preventDefault();
+    studioDrop.classList.remove("is-over");
+    const file = e.dataTransfer?.files?.[0];
+    if (file) void studioProcess(file);
+  });
+}
+
+async function studioProcess(file: File): Promise<void> {
+  if (audioUrl) URL.revokeObjectURL(audioUrl);
+  audioUrl = URL.createObjectURL(file);
+  audioName = file.name;
+  player.load(audioUrl);
+
+  showProgress("Starte …", 0.02, false);
+  const gloss = studioGloss.value;
+  const modelParam = glossModel ? `&model=${encodeURIComponent(glossModel)}` : "";
+  let resp: Response;
+  try {
+    resp = await fetch(`/process?gloss=${encodeURIComponent(gloss)}${modelParam}`, {
+      method: "POST",
+      headers: { "X-Filename": file.name },
+      body: file,
+    });
+  } catch {
+    showProgress("Verbindung zum lokalen Server fehlgeschlagen.", 1, true);
+    return;
+  }
+  if (!resp.ok || !resp.body) {
+    showProgress(`Serverfehler (${resp.status}).`, 1, true);
+    return;
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let nl: number;
+    while ((nl = buffer.indexOf("\n")) >= 0) {
+      const line = buffer.slice(0, nl).trim();
+      buffer = buffer.slice(nl + 1);
+      if (line) handleStudioEvent(JSON.parse(line));
+    }
+  }
+}
+
+function handleStudioEvent(ev: {
+  stage: string;
+  fraction?: number | null;
+  message?: string;
+  document?: ListenDocument;
+}): void {
+  switch (ev.stage) {
+    case "transcribe":
+      showProgress(`Transkribiere … ${Math.round((ev.fraction ?? 0) * 100)}%`, (ev.fraction ?? 0) * 0.6, false);
+      break;
+    case "enrich":
+      showProgress("Analysiere & übersetze (lokales LLM) …", 0.75, false);
+      break;
+    case "align":
+      showProgress("Richte Timings aus …", 0.92, false);
+      break;
+    case "done":
+      showProgress("Fertig", 1, false);
+      break;
+    case "result":
+      if (ev.document) {
+        doc = ev.document;
+        studioProgress.hidden = true;
+        studio.hidden = true;
+        start();
+      }
+      break;
+    case "error":
+      showProgress(`Fehler: ${ev.message ?? "unbekannt"}`, 1, true);
+      break;
+  }
+}
+
+function showProgress(label: string, fraction: number, isError: boolean): void {
+  studioProgress.hidden = false;
+  studioProgress.classList.toggle("is-error", isError);
+  studioProgressLabel.textContent = label;
+  studioProgressBar.style.width = `${Math.round(fraction * 100)}%`;
+}
+
 initTheme();
+void initStudioMode();

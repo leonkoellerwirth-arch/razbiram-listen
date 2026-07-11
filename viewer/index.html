@@ -34,6 +34,34 @@
     </header>
 
     <main class="rz-main">
+      <section class="rz-card rz-studio" id="studio" hidden>
+        <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
+        <p class="rz-muted" style="margin: 0 0 16px">
+          Zieh eine Audiodatei hierher — sie wird <strong>lokal</strong> transkribiert und
+          übersetzt. Nichts verlässt deinen Rechner, kein Datei-Jonglieren.
+        </p>
+        <div class="rz-studio-drop" id="studio-drop" role="button" tabindex="0">
+          <input id="studio-input" type="file" accept="audio/*" hidden />
+          <div style="font-size: 42px">🎧</div>
+          <div style="font-weight: 700; font-size: 18px">Audiodatei hierher ziehen</div>
+          <div class="rz-faint" style="margin-top: 4px">oder klicken zum Auswählen</div>
+        </div>
+        <div class="rz-studio-opts">
+          <label class="rz-ctl">Übersetzung
+            <select id="studio-gloss" class="rz-select">
+              <option value="de">Deutsch</option>
+              <option value="en">English</option>
+              <option value="none">keine (nur Transkript)</option>
+            </select>
+          </label>
+          <span class="rz-faint" id="studio-model"></span>
+        </div>
+        <div class="rz-progress" id="studio-progress" hidden>
+          <div class="rz-progress-label" id="studio-progress-label">…</div>
+          <div class="rz-progress-track"><div class="rz-progress-bar" id="studio-progress-bar"></div></div>
+        </div>
+      </section>
+
       <section class="rz-card rz-loader" id="loader">
         <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
         <p class="rz-muted">

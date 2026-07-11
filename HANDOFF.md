@@ -4,6 +4,43 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — Studio mode (one-step, no CLI)
+
+### Why
+- Users found "get audio → run a CLI with hardcoded filenames → load two files"
+  far too technical. The browser can't run Whisper/classla/Ollama, so a one-step
+  in-browser flow needs a **local companion process** — but the user must see none
+  of it.
+
+### Done
+- `server.py`: `razbiram-listen studio` starts a stdlib `ThreadingHTTPServer` on
+  127.0.0.1 that serves the built viewer and exposes `POST /process` (audio bytes
+  in → newline-delimited JSON progress stream → final `.listen.json`) and
+  `GET /health` (advertises local Ollama models; auto-picks a multilingual one).
+- Pipeline/transcribe gained progress hooks: `Transcriber.transcribe(on_progress=)`
+  and `process_audio(on_event=)` emit `transcribe%/enrich/align/done`.
+- Viewer: when `/health` responds it enters **studio mode** — a single dropzone,
+  a translation-language select, and a live progress bar; drop → `fetch` streams
+  progress → auto-renders. Falls back to the manual two-file loader with no server
+  (e.g. the vite dev server). Audio plays from the browser's object URL; only the
+  bytes go to localhost.
+- Verified end-to-end via curl: `/health`, static serve, and a real `gloss=de`
+  run streaming to a translated result (100% coverage). 43 Python + 17 viewer
+  tests green; server helpers unit-tested.
+
+### Known follow-ups
+- Packaging: the server serves `viewer/dist` from the repo layout; a real pip
+  install needs the built viewer bundled as package data (or `studio` should build
+  it). For difficulty/vocab CEFR, the server env still needs
+  `RAZBIRAM_NLP_DATA_DIR`/`RAZBIRAM_NLP_CONFIG_DIR` (graceful-degrades otherwise).
+- After a result, "process another file" currently means reload — add a reset.
+
+### Next (M7 — Politur)
+- Own recorded example under `examples/sample-audio/` + committed sample; GIF/
+  screenshots; README polish; transcript-edit mode; fresh-clone acceptance.
+
+---
+
 ## Session 1 — Viewer load-state guidance (UX fix)
 
 ### Problem
