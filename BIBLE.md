@@ -74,6 +74,16 @@ shared `EnrichedDocument` contract, extended with audio timings.
   The audio is range-served (`/library/<id>/audio`, HTTP 206) so seeking works on
   large files. Ids are path-traversal-guarded.
 
+- **D9 — Translation is a switchable layer; default English; re-translate reuses the
+  transcript.** Author-decided (2026-07-11). A studio drop defaults to **English**
+  (full analysis + CEFR); "Deutsch" and "nur Transkript" remain choices. Any saved
+  entry can be **re-translated to DE/EN later without re-transcribing**: because
+  morphology/CEFR/lemma are language-independent, `enrichment.retranslate` recomputes
+  only the sentence + word **glosses** on the existing structure and preserves tokens,
+  timings, `audioRef`, `schemaVersion` — alignment stays valid. Runs as a queued
+  "translate" job (`POST /library/<id>/translate`); the entry remembers `meta.langs`.
+  This refines the earlier "enrichment default off" stance (D7 era) per the owner.
+
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
   on `EnrichedDocument` (currently neither exists). This would replace listen's

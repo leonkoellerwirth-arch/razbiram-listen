@@ -6,6 +6,27 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+## [0.4.0] — 2026-07-11
+
+Translation becomes a switchable layer, not a one-shot choice at drop time.
+
+### Added
+- **Translate a saved entry later, to German or English, without re-transcribing.**
+  The reader has a language switch (EN/DE); changing it queues a lightweight
+  re-gloss job that reuses the stored transcript. Because morphology/CEFR/lemma are
+  language-independent, only the sentence + word **glosses** are recomputed — tokens,
+  timings, `audioRef` and `schemaVersion` are preserved, so the karaoke alignment
+  stays valid and no Whisper pass runs again. The entry remembers which languages it
+  has (`meta.langs`); switching back is cache-fast.
+- Endpoint `POST /library/<id>/translate?lang=en|de&model=…` (a queued "translate"
+  job; 409 without the plugin, 404 for a missing entry). `enrichment.retranslate()`
+  + net-free tests (field preservation with a fake provider; job dispatch).
+
+### Changed
+- **The studio default is now English** (was "nur Transkript"): a plain drop
+  transcribes and translates to English (full analysis + CEFR). "nur Transkript" and
+  "Deutsch" remain in the dropdown.
+
 ## [0.3.0] — 2026-07-11
 
 Large audio (a film) no longer means a fragile 30-minute open connection: the studio

@@ -57,9 +57,12 @@ pip install "razbiram-listen[enrich] @ git+https://github.com/leonkoellerwirth-a
 razbiram-listen studio        # opens the browser; drop an audio file → read it
 ```
 
-In the studio, translation & CEFR default to **off** for an instant synced
-transcript; switch the dropdown to Deutsch/English to enrich (needs the `[enrich]`
-plugin + a local Ollama model, and shows honest "sentence X of N" progress).
+In the studio a drop transcribes and translates to **English by default** (full
+analysis + CEFR, needs the `[enrich]` plugin + a local Ollama model, with honest
+"sentence X of N" progress). Switch the dropdown to Deutsch, or to *nur Transkript*
+for an instant transcript-only pass. You can also **change the translation language
+later** on any saved entry (EN ⇄ DE) — it reuses the stored transcript, so there is
+no re-transcription and the karaoke timings stay intact.
 
 ### Queue & library — big files, saved for replay
 

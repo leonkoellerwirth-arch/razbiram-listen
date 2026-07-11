@@ -6,10 +6,11 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ## ▶ Resume here (current state)
 
-**Released v0.1.0 → v0.2.0 (nlp optional plugin). Now v0.3.0 — background job queue
-+ persistent local library — built & verified (backend via curl, viewer logic via
-vitest), committed on `main`.** Gate green. **Open step: visual browser test of the
-new queue/library UI, then cut the v0.3.0 tag + release.**
+**Released v0.1.0 → v0.2.0 (nlp optional plugin) → v0.3.0 (queue + local library).
+Now v0.4.0 — translation as a switchable layer (default English; re-translate a
+saved entry to DE/EN with no re-transcription) — built & verified (backend + real
+Ollama via curl; viewer builds), committed on `main`.** Gate green. **Open step:
+owner's browser check of the language-switch UI, then cut the v0.4.0 tag + release.**
 
 - **What changed (0.3.0, BIBLE D8):** large audio runs as a **background job**
   (studio `POST /jobs` → bounded worker pool, default 2, `RAZBIRAM_LISTEN_WORKERS`),
@@ -38,6 +39,37 @@ new queue/library UI, then cut the v0.3.0 tag + release.**
   serves it from the repo layout today); ask the hub to ship a JSON Schema +
   `schemaVersion` (would replace listen's hand-kept `contract.py`); "process another
   file" reset in studio.
+
+---
+
+## Session 4 — Translation as a switchable layer; default English (v0.4.0)
+
+### Why
+- Owner: transcription is expensive but separable from translation. Default should be
+  **English**, and the user must be able to **choose DE/EN later** on an already-
+  transcribed file — "später nur übersetzung" — without re-transcribing.
+
+### Key insight
+- Morphology/CEFR/lemma are **language-independent**; only glosses depend on the
+  target language. So re-translating recomputes only sentence + word glosses on the
+  existing structure → tokens/timings/audioRef/schemaVersion preserved, alignment
+  intact, no re-Whisper. (BIBLE D9.)
+
+### Done (v0.4.0)
+- **Backend:** `enrichment.retranslate(document, lang, …)` (sets aside listen ext
+  fields, re-glosses sentences + vocab via hub `apply_glosses`, re-attaches ext);
+  `jobs.py` gains a "translate" job kind (`submit_translate`, worker dispatch, a
+  failed translate never touches the entry); `POST /library/<id>/translate`; meta
+  tracks `langs` + `glossLang`. Tests: `test_retranslate.py`, translate-job test.
+- **Frontend:** studio default → English; reader language switch (EN/DE) queues a
+  translate job and reopens the entry when done; `api.translateEntry`; `pendingOpen`
+  map reopens both process + translate jobs.
+- **Verified end-to-end** (curl + Ollama): process demo → English, then translate the
+  same entry → German; glosses switch while lemma/band, all 14 timings and audioRef
+  are preserved; `meta.langs = ["de","en"]`.
+
+### Open
+- Owner's browser check of the language-switch UI, then cut v0.4.0.
 
 ---
 
