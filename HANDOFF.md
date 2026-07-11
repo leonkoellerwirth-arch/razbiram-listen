@@ -4,6 +4,25 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## ▶ Resume here (current state)
+
+**M1–M6 + open-URL import + studio mode are done, tested, and pushed to `main`.**
+43 Python + 17 viewer tests green; ruff/format clean. Nothing uncommitted.
+
+- **Try it:** `razbiram-listen studio` → browser → drop audio → read (README leads
+  with this). Full-quality glossing needs Ollama + `classla` + the hub
+  `data/`+`config/` env vars (README "Glosses & CEFR" + `.env.example`).
+- **Next milestone — M7 (Politur):** own recorded Bulgarian example under
+  `examples/sample-audio/` + committed `sample.listen.json` + `SOURCES.md`;
+  GIF/screenshots (light+dark); README polish; **transcript-edit mode** in the
+  viewer; fresh-clone acceptance.
+- **Deferred follow-ups:** package `viewer/dist` for a real pip install (studio
+  serves it from the repo layout today); ask the hub to ship `data/`+`config/`
+  (family-wide ADR); "process another file" reset in studio; the approved open-URL
+  import could grow a curated legal-podcast list.
+
+---
+
 ## Session 1 — Studio mode (one-step, no CLI)
 
 ### Why
