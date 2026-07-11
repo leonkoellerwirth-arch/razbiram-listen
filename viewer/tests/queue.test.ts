@@ -48,7 +48,7 @@ describe("queue helpers", () => {
   });
 
   it("jobProgress maps stages to labels and bar state", () => {
-    expect(jobProgress(job({ status: "queued" })).label).toContain("Wartet");
+    expect(jobProgress(job({ status: "queued" })).label).toContain("Waiting");
     expect(
       jobProgress(job({ status: "running", stage: "transcribe", fraction: 0.5 })).label,
     ).toContain("50%");
@@ -56,7 +56,7 @@ describe("queue helpers", () => {
     expect(enrichAnalysing.indeterminate).toBe(true);
     expect(
       jobProgress(job({ status: "running", stage: "enrich", fraction: 0.5 })).label,
-    ).toContain("Übersetze");
+    ).toContain("Translating");
     expect(jobProgress(job({ status: "error", error: "boom" })).label).toBe("boom");
   });
 });

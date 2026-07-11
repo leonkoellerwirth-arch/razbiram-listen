@@ -7,14 +7,14 @@ export function parseListenDocument(text: string): ListenDocument {
   try {
     data = JSON.parse(text);
   } catch {
-    throw new ListenError("Die Datei ist kein gültiges JSON.");
+    throw new ListenError("The file is not valid JSON.");
   }
   if (data === null || typeof data !== "object") {
     throw new ListenError("Das ist keine .listen.json.");
   }
   const doc = data as Record<string, unknown>;
   if (!Array.isArray(doc.sentences)) {
-    throw new ListenError("Das sieht nicht wie eine .listen.json aus — es fehlen sentences.");
+    throw new ListenError("This doesn't look like a .listen.json — sentences are missing.");
   }
   return data as ListenDocument;
 }

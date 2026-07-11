@@ -48,7 +48,7 @@ export async function fetchLibrary(): Promise<LibraryEntry[]> {
 /** Load a saved result's .listen.json into a validated ListenDocument. */
 export async function fetchResult(id: string): Promise<ListenDocument> {
   const resp = await fetch(`/library/${id}/result`);
-  if (!resp.ok) throw new Error(`Konnte Eintrag nicht laden (${resp.status}).`);
+  if (!resp.ok) throw new Error(`Couldn't load entry (${resp.status}).`);
   return parseListenDocument(await resp.text());
 }
 

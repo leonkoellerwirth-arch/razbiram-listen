@@ -33,8 +33,8 @@
       </div>
       <div class="rz-topbar-actions">
         <button id="library-btn" class="rz-btn" type="button" hidden
-          aria-label="Bibliothek und Warteschlange öffnen">📚 Bibliothek</button>
-        <button id="theme" class="rz-btn" type="button" aria-label="Farbschema wechseln">☾ Dark</button>
+          aria-label="Open library and queue">📚 Library</button>
+        <button id="theme" class="rz-btn" type="button" aria-label="Toggle colour scheme">☾ Dark</button>
       </div>
     </header>
 
@@ -44,13 +44,13 @@
       <!-- Left spine: search · chapter marks · position rail -->
       <aside class="rz-spine" id="spine">
         <div class="rz-spine-search">
-          <input id="spine-search" type="search" placeholder="Suchen …"
-            class="rz-spine-input" aria-label="Transkript durchsuchen" />
+          <input id="spine-search" type="search" placeholder="Search …"
+            class="rz-spine-input" aria-label="Search transcript" />
         </div>
-        <nav class="rz-spine-nav" id="spine-nav" aria-label="Zeitmarken"></nav>
+        <nav class="rz-spine-nav" id="spine-nav" aria-label="Time marks"></nav>
         <div class="rz-spine-rail">
           <input id="spine-pos" type="range" min="0" max="1000" value="0"
-            class="rz-spine-scrubber" aria-label="Position im Audio" />
+            class="rz-spine-scrubber" aria-label="Position in audio" />
         </div>
       </aside>
 
@@ -64,10 +64,10 @@
         <div class="rz-reader-head" id="reader-head" hidden>
           <div class="rz-reader-meta" id="reader-meta"></div>
           <label class="rz-ctl">
-            <select id="lang-select" class="rz-select" aria-label="Übersetzungssprache">
+            <select id="lang-select" class="rz-select" aria-label="Translation language">
               <option value="en">English</option>
               <option value="de">Deutsch</option>
-              <option value="off">nur Transkript</option>
+              <option value="off">Transcript only</option>
             </select>
           </label>
         </div>
@@ -78,18 +78,18 @@
             Listen to Bulgarian, word by word
           </h2>
           <p class="rz-muted" style="text-align:center;margin:0 auto 20px;max-width:480px">
-            Zieh eine Audiodatei hierher — sie wird <strong>lokal</strong> transkribiert
-            und zeitgenau an den Text ausgerichtet. Nichts verlässt deinen Rechner,
-            kein Datei-Jonglieren.
+            Drop an audio file here — it is transcribed <strong>locally</strong> and
+            aligned to the text word by word. Nothing leaves your machine, no file
+            juggling.
           </p>
           <div class="rz-studio-drop" id="studio-drop" role="button" tabindex="0"
-            aria-label="Audiodatei hierher ziehen oder klicken">
+            aria-label="Drop an audio file here or click">
             <input id="studio-input" type="file" accept="audio/*" hidden />
             <div style="font-size:48px">🎧</div>
             <div style="font-weight:700;font-size:20px;margin-top:8px">
-              Audiodatei hierher ziehen
+              Drop an audio file here
             </div>
-            <div class="rz-faint" style="margin-top:6px">oder klicken zum Auswählen</div>
+            <div class="rz-faint" style="margin-top:6px">or click to choose</div>
           </div>
           <p class="rz-faint" style="text-align:center;margin:12px 0 0" id="studio-model"></p>
           <p class="rz-faint" id="studio-enrich-hint" hidden style="text-align:center;margin:6px 0 0"></p>
@@ -127,14 +127,14 @@
         <!-- Seed bar (sticky at bottom of the scroll zone) -->
         <div class="rz-seedbar rz-card" id="seedbar" hidden>
           <span class="rz-seed-count">
-            <span class="rz-numeral" id="seed-count">0</span> Wörter gesammelt
+            <span class="rz-numeral" id="seed-count">0</span> words collected
           </span>
           <span class="rz-seed-actions">
             <button id="seed-export-seed" class="rz-btn rz-btn-primary" type="button">
               razbiram Seed JSON
             </button>
             <button id="seed-export-deck" class="rz-btn" type="button">Anki deck.json</button>
-            <button id="seed-clear" class="rz-btn" type="button">Leeren</button>
+            <button id="seed-clear" class="rz-btn" type="button">Clear</button>
           </span>
         </div>
 
@@ -149,7 +149,7 @@
         <span id="dur" class="rz-numeral">0:00</span>
       </span>
       <input id="scrubber" type="range" min="0" max="1000" value="0"
-        class="rz-scrubber" aria-label="Wiedergabeposition" />
+        class="rz-scrubber" aria-label="Playback position" />
       <button id="loop" class="rz-btn" type="button" aria-pressed="false">↺ Loop</button>
       <label class="rz-ctl">Tempo <span id="rate-val" class="rz-numeral">1.0×</span>
         <input id="rate" type="range" min="0.5" max="1.5" step="0.1" value="1" />
@@ -158,14 +158,14 @@
 
     <!-- Slide-over drawer: queue + library ------------------------------------ -->
     <div class="rz-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
-    <aside class="rz-drawer" id="queue" aria-label="Bibliothek und Warteschlange">
+    <aside class="rz-drawer" id="queue" aria-label="Queue and library">
       <div class="rz-drawer-head">
-        <h2 class="rz-drawer-title">Warteschlange &amp; Bibliothek</h2>
-        <button id="drawer-close" class="rz-icon-btn" type="button" aria-label="Schließen">✕</button>
+        <h2 class="rz-drawer-title">Queue &amp; Library</h2>
+        <button id="drawer-close" class="rz-icon-btn" type="button" aria-label="Close">✕</button>
       </div>
-      <h3 class="rz-queue-sub">Aktiv</h3>
+      <h3 class="rz-queue-sub">Active</h3>
       <div id="queue-jobs" class="rz-queue-jobs"></div>
-      <h3 class="rz-queue-sub">Gespeichert</h3>
+      <h3 class="rz-queue-sub">Saved</h3>
       <div id="queue-library" class="rz-queue-library"></div>
     </aside>
 

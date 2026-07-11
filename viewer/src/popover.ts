@@ -44,7 +44,7 @@ export class Popover {
 
     const gloss = document.createElement("div");
     gloss.className = data.gloss ? "rz-pop-gloss" : "rz-pop-gloss rz-faint";
-    gloss.textContent = data.gloss ?? "— keine Glosse";
+    gloss.textContent = data.gloss ?? "— no gloss";
     this.el.appendChild(gloss);
 
     const collect = document.createElement("button");
@@ -52,7 +52,7 @@ export class Popover {
     collect.type = "button";
     const paint = () => {
       const on = this.cb.isCollected(item);
-      collect.textContent = on ? "✓ gesammelt" : "＋ sammeln";
+      collect.textContent = on ? "✓ collected" : "＋ collect";
       collect.setAttribute("aria-pressed", on ? "true" : "false");
     };
     paint();

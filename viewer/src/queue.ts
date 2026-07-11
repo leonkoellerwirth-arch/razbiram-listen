@@ -39,24 +39,24 @@ export interface JobProgress {
 /** Map a job's stage/fraction to a bar label + width (mirrors the studio stages). */
 export function jobProgress(job: Job): JobProgress {
   const pct = (f?: number | null) => `${Math.round((f ?? 0) * 100)}%`;
-  if (job.status === "queued") return { label: "Wartet …", fraction: 0.02, indeterminate: false };
+  if (job.status === "queued") return { label: "Waiting …", fraction: 0.02, indeterminate: false };
   if (job.status === "error") {
-    return { label: job.error ?? "Fehler", fraction: 1, indeterminate: false };
+    return { label: job.error ?? "Error", fraction: 1, indeterminate: false };
   }
   const f = job.fraction ?? null;
   switch (job.stage) {
     case "transcribe":
-      return { label: `Transkribiere … ${pct(f)}`, fraction: (f ?? 0) * 0.6, indeterminate: false };
+      return { label: `Transcribing … ${pct(f)}`, fraction: (f ?? 0) * 0.6, indeterminate: false };
     case "enrich":
       return f == null
-        ? { label: "Analysiere …", fraction: 0.62, indeterminate: true }
-        : { label: `Übersetze … ${pct(f)}`, fraction: 0.62 + f * 0.33, indeterminate: false };
+        ? { label: "Analysing …", fraction: 0.62, indeterminate: true }
+        : { label: `Translating … ${pct(f)}`, fraction: 0.62 + f * 0.33, indeterminate: false };
     case "align":
-      return { label: "Richte aus …", fraction: 0.96, indeterminate: false };
+      return { label: "Aligning …", fraction: 0.96, indeterminate: false };
     case "done":
-      return { label: "Fertig", fraction: 1, indeterminate: false };
+      return { label: "Done", fraction: 1, indeterminate: false };
     default:
-      return { label: "Läuft …", fraction: 0.05, indeterminate: true };
+      return { label: "Running …", fraction: 0.05, indeterminate: true };
   }
 }
 
@@ -91,7 +91,7 @@ export function renderJobs(container: HTMLElement, jobs: Job[], handlers?: JobHa
     if (handlers && isActive(job)) {
       const cancel = el<HTMLButtonElement>("button", "rz-icon-btn", "✕");
       cancel.type = "button";
-      cancel.title = "Abbrechen";
+      cancel.title = "Cancel";
       cancel.addEventListener("click", () => handlers.onCancel(job.id));
       row.appendChild(cancel);
     }
@@ -113,7 +113,7 @@ export function renderLibrary(
 ): void {
   container.textContent = "";
   if (entries.length === 0) {
-    container.appendChild(el("p", "rz-faint", "Noch nichts gespeichert."));
+    container.appendChild(el("p", "rz-faint", "Nothing saved yet."));
     return;
   }
   for (const entry of entries) {
@@ -121,9 +121,12 @@ export function renderLibrary(
     const open = el<HTMLButtonElement>("button", "rz-lib-open");
     open.type = "button";
     open.disabled = !entry.hasAudio;
-    open.title = entry.hasAudio ? "Abspielen" : "Audio entfernt — nicht abspielbar";
+    open.title = entry.hasAudio ? "Play" : "Audio removed — not playable";
     open.appendChild(el("span", "rz-lib-title", entry.title));
-    const parts = [fmtDuration(entry.durationS), entry.mode === "enriched" ? "de/CEFR" : "Transkript"];
+    const enriched = entry.glossLang
+      ? `${entry.glossLang.toUpperCase()}/CEFR`
+      : "CEFR";
+    const parts = [fmtDuration(entry.durationS), entry.mode === "enriched" ? enriched : "Transcript"];
     open.appendChild(el("span", "rz-lib-meta", parts.filter(Boolean).join(" · ")));
     if (entry.hasAudio) open.addEventListener("click", () => handlers.onOpen(entry.id));
 
@@ -131,13 +134,13 @@ export function renderLibrary(
     if (entry.hasAudio) {
       const rm = el<HTMLButtonElement>("button", "rz-icon-btn", "⤓");
       rm.type = "button";
-      rm.title = "Audio entfernen (Transkript behalten)";
+      rm.title = "Remove audio (keep transcript)";
       rm.addEventListener("click", () => handlers.onRemoveAudio(entry.id));
       actions.appendChild(rm);
     }
     const del = el<HTMLButtonElement>("button", "rz-icon-btn", "✕");
     del.type = "button";
-    del.title = "Eintrag löschen";
+    del.title = "Delete entry";
     del.addEventListener("click", () => handlers.onDelete(entry.id));
     actions.appendChild(del);
 

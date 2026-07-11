@@ -120,7 +120,7 @@ async function handleDoc(file: File): Promise<void> {
     refreshLoadState();
   } catch (err) {
     doc = null;
-    note(err instanceof ListenError ? err.message : "Konnte die .listen.json nicht lesen.", true);
+    note(err instanceof ListenError ? err.message : "Couldn't read the .listen.json.", true);
   }
 }
 
@@ -142,7 +142,7 @@ function route(file: File): void {
   else if (file.type.startsWith("audio/") || /\.(mp3|wav|m4a|ogg|flac|aiff?)$/i.test(file.name)) {
     handleAudio(file);
   } else {
-    note(`„${file.name}" ist weder eine .listen.json noch eine Audiodatei.`, true);
+    note(`"${file.name}" is neither a .listen.json nor an audio file.`, true);
   }
 }
 
@@ -187,19 +187,19 @@ function refreshLoadState(): void {
   if (haveAudio && !haveDoc) {
     const base = (audioName ?? "audio").replace(/\.[^.]+$/, "");
     noteHTML(
-      `<strong>✓ Audio geladen:</strong> ${esc(audioName ?? "")}.<br>` +
-        "Es fehlt das <strong>Transkript</strong> (<code>.listen.json</code>) — der Viewer " +
-        "transkribiert bewusst nicht selbst. Erzeuge es einmalig lokal:<br>" +
+      `<strong>✓ Audio loaded:</strong> ${esc(audioName ?? "")}.<br>` +
+        "The <strong>transcript</strong> (<code>.listen.json</code>) is missing — the viewer " +
+        "deliberately doesn't transcribe on its own. Create it once, locally:<br>" +
         `<code class="rz-cmd">razbiram-listen process --audio "${esc(audioName ?? "")}" ` +
         `--out "${esc(base)}.listen.json"</code>` +
-        "Für Übersetzung &amp; CEFR <code>--gloss de --gloss-model aya-expanse:8b</code> " +
-        "ergänzen (braucht <code>razbiram-listen[enrich]</code>). Dann die erzeugte " +
-        "<code>.listen.json</code> in den Slot 1 laden.",
+        "For translation &amp; CEFR, add <code>--gloss de --gloss-model aya-expanse:8b</code> " +
+        "(needs <code>razbiram-listen[enrich]</code>). Then load the resulting " +
+        "<code>.listen.json</code> into slot 1.",
       true,
     );
   } else if (haveDoc && !haveAudio) {
     note(
-      `✓ Transkript geladen (${doc?.sentences.length ?? 0} Sätze). Jetzt die passende Audiodatei laden.`,
+      `✓ Transcript loaded (${doc?.sentences.length ?? 0} sentences). Now load the matching audio file.`,
       false,
     );
   }
@@ -241,13 +241,13 @@ function start(): void {
   const hasGloss = d.sentences.some((s) => s.gloss?.text);
   if (expected && audioName && expected !== audioName) {
     note(
-      `Hinweis: Diese .listen.json wurde für „${expected}" erzeugt, geladen ist „${audioName}".`,
+      `Note: this .listen.json was made for "${expected}", but "${audioName}" is loaded.`,
       true,
     );
   } else if (hasGloss) {
-    note(`Bereit — ${d.sentences.length} Sätze. Play drücken.`, false);
+    note(`Ready — ${d.sentences.length} sentences. Press Play.`, false);
   } else {
-    note(`Bereit — ${d.sentences.length} Sätze, synchroner Transkript-Modus.`, false);
+    note(`Ready — ${d.sentences.length} sentences, synced transcript mode.`, false);
   }
 
   cancelAnimationFrame(rafId);
@@ -268,7 +268,7 @@ function buildSpineNav(): void {
     btn.className = "rz-spine-mark";
     btn.type = "button";
     btn.textContent = fmt(seg.t_start);
-    btn.title = `Springe zu ${fmt(seg.t_start)}`;
+    btn.title = `Jump to ${fmt(seg.t_start)}`;
     btn.dataset.si = String(seg.sentence_index);
     btn.addEventListener("click", () => {
       player.seek(seg.t_start);
@@ -330,7 +330,7 @@ loopBtn.addEventListener("click", () => {
   }
   const seg = currentSegment();
   if (!seg) {
-    note("Zum Loopen zuerst einen Satz abspielen.", true);
+    note("Play a sentence first to loop it.", true);
     return;
   }
   player.setLoop(seg.t_start, seg.t_end);
@@ -455,7 +455,7 @@ async function switchLanguage(lang: string): Promise<void> {
     await refreshQueue();
     kickPolling();
   } catch (err) {
-    note(err instanceof Error ? err.message : "Übersetzen fehlgeschlagen.", true);
+    note(err instanceof Error ? err.message : "Translation failed.", true);
   }
 }
 
@@ -480,7 +480,7 @@ async function initStudioMode(): Promise<void> {
   loader.hidden = true;
   studio.hidden = false;
   libraryBtn.hidden = false;
-  studioModel.textContent = glossModel ? `Modell: ${glossModel}` : "kein lokales LLM gefunden";
+  studioModel.textContent = glossModel ? `Model: ${glossModel}` : "no local LLM found";
 
   // Translation & CEFR need the razbiram-nlp plugin + a local LLM.
   // Disable those options when the plugin is missing.
@@ -491,8 +491,8 @@ async function initStudioMode(): Promise<void> {
     langSelect.value = "off";
     studioEnrichHint.hidden = false;
     studioEnrichHint.textContent =
-      "Uebersetzung & CEFR: 'pip install razbiram-listen[enrich]' + ein lokales Ollama-Modell. " +
-      "Ohne das laeuft der synchrone Transkript-Modus sofort.";
+      "Translation & CEFR: 'pip install razbiram-listen[enrich]' + a local Ollama model. " +
+      "Without it, synced transcript mode runs instantly.";
   }
 
   studioDrop.addEventListener("click", () => studioInput.click());
@@ -535,7 +535,7 @@ async function initStudioMode(): Promise<void> {
 async function studioProcess(file: File): Promise<void> {
   const choice = langSelect.value; // "off" → core; "de"/"en" → enrich
   const wantEnrich = choice !== "off";
-  showProgress("Lädt in die Warteschlange …", 0.06, false, true);
+  showProgress("Adding to the queue …", 0.06, false, true);
   try {
     const jobId = await submitJob(file, {
       enrich: wantEnrich,
@@ -547,7 +547,7 @@ async function studioProcess(file: File): Promise<void> {
     await refreshQueue();
     kickPolling();
   } catch (err) {
-    showProgress(err instanceof Error ? err.message : "Fehler beim Absenden.", 1, true);
+    showProgress(err instanceof Error ? err.message : "Submit failed.", 1, true);
   }
 }
 
@@ -624,7 +624,7 @@ async function openLibraryItem(id: string): Promise<void> {
     if (current === "de" || current === "en") langSelect.value = current;
     refreshLoadState();
   } catch (err) {
-    note(err instanceof Error ? err.message : "Konnte den Eintrag nicht öffnen.", true);
+    note(err instanceof Error ? err.message : "Couldn't open the entry.", true);
   }
 }
 
