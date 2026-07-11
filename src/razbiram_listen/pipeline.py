@@ -101,9 +101,19 @@ def process_audio(
 
     want_enrich = enrich or gloss_lang is not None
     if want_enrich:
-        emit("enrich", None)
+        emit("enrich", None)  # indeterminate while the cheap analysis stages run
+
+        def enrich_progress(done: int, total: int) -> None:
+            # Real "sentence X of N" fractions once glossing (the slow part) starts.
+            emit("enrich", (done / total) if total else 1.0)
+
         do_enrich = enrich_fn or enrichment.enrich_document
-        doc = do_enrich(transcription.text, gloss_lang=gloss_lang, gloss_model=gloss_model)
+        doc = do_enrich(
+            transcription.text,
+            gloss_lang=gloss_lang,
+            gloss_model=gloss_model,
+            on_progress=enrich_progress,
+        )
     else:
         doc = build_core_document(transcription)
 

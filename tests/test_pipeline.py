@@ -46,7 +46,7 @@ def _canned_transcription() -> Transcription:
 
 
 def _fake_enrich(
-    text: str, *, gloss_lang: str | None, gloss_model: str | None = None
+    text: str, *, gloss_lang: str | None, gloss_model: str | None = None, on_progress=None
 ) -> EnrichedDocument:
     # Tokens consistent with the canned transcription so alignment matches 3/3.
     toks = [
@@ -125,7 +125,7 @@ def test_gloss_lang_implies_enrichment_and_is_passed_through() -> None:
     seen: dict[str, str | None] = {}
 
     def spy_enrich(
-        text: str, *, gloss_lang: str | None, gloss_model: str | None = None
+        text: str, *, gloss_lang: str | None, gloss_model: str | None = None, on_progress=None
     ) -> EnrichedDocument:
         seen["gloss_lang"] = gloss_lang
         seen["gloss_model"] = gloss_model
@@ -143,6 +143,34 @@ def test_gloss_lang_implies_enrichment_and_is_passed_through() -> None:
     assert result.enriched is True
     assert seen["gloss_lang"] == "de"
     assert seen["gloss_model"] == "aya-expanse:8b"
+
+
+def test_enrich_progress_is_emitted_as_fractions() -> None:
+    events: list[tuple[str, float | None]] = []
+
+    def enrich_fn(
+        text: str, *, gloss_lang: str | None, gloss_model: str | None = None, on_progress=None
+    ) -> EnrichedDocument:
+        # Simulate the adapter reporting "sentence X of N" during glossing.
+        assert on_progress is not None
+        on_progress(0, 4)
+        on_progress(2, 4)
+        on_progress(4, 4)
+        return _fake_enrich(text, gloss_lang=gloss_lang)
+
+    process_audio(
+        "a.mp3",
+        enrich=True,
+        transcriber=FakeTranscriber(_canned_transcription()),
+        enrich_fn=enrich_fn,
+        show_progress=False,
+        on_event=lambda stage, frac: events.append((stage, frac)),
+    )
+    enrich_fracs = [frac for stage, frac in events if stage == "enrich"]
+    # Starts indeterminate (None), then reports honest fractions to completion.
+    assert None in enrich_fracs
+    assert pytest.approx(0.5) in enrich_fracs
+    assert pytest.approx(1.0) in enrich_fracs
 
 
 def test_available_stages_reflects_environment() -> None:
@@ -189,7 +217,9 @@ def test_real_end_to_end_enriched_pipeline(tmp_path: Path) -> None:
     pytest.importorskip("razbiram_nlp")
     from razbiram_nlp import enrich_text
 
-    def enrich_seg_only(text: str, *, gloss_lang: str | None, gloss_model: str | None = None):
+    def enrich_seg_only(
+        text: str, *, gloss_lang: str | None, gloss_model: str | None = None, on_progress=None
+    ):
         return enrich_text(text, gloss_lang=None, stages={"segmentation"})
 
     audio = tmp_path / "tone.wav"
