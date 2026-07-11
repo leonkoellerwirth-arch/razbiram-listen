@@ -52,6 +52,22 @@ export function audioUrl(id: string): string {
   return `/library/${id}/audio`;
 }
 
+/** Queue a re-translation of a saved entry into `lang` (reuses the transcript). */
+export async function translateEntry(
+  id: string,
+  lang: string,
+  model?: string | null,
+): Promise<string> {
+  const params = new URLSearchParams({ lang });
+  if (model) params.set("model", model);
+  const resp = await fetch(`/library/${id}/translate?${params.toString()}`, { method: "POST" });
+  if (!resp.ok) {
+    const detail = await resp.json().catch(() => ({}));
+    throw new Error(detail.message ?? `Serverfehler (${resp.status}).`);
+  }
+  return (await resp.json()).jobId as string;
+}
+
 export async function deleteEntry(id: string): Promise<void> {
   await fetch(`/library/${id}`, { method: "DELETE" });
 }

@@ -7,6 +7,7 @@ import {
   fetchLibrary,
   fetchResult,
   submitJob,
+  translateEntry,
 } from "./api";
 import { type KaraokeHandle, renderKaraoke } from "./karaoke";
 import { ListenError, parseListenDocument } from "./loadListen";
@@ -52,6 +53,8 @@ const studioProgressBar = el<HTMLElement>("studio-progress-bar");
 const queuePanel = el<HTMLElement>("queue");
 const queueJobsEl = el<HTMLElement>("queue-jobs");
 const queueLibraryEl = el<HTMLElement>("queue-library");
+const langSwitchWrap = el<HTMLElement>("lang-switch-wrap");
+const langSwitch = el<HTMLSelectElement>("lang-switch");
 
 const player = new Player();
 const basket = new SeedBasket();
@@ -375,7 +378,7 @@ async function studioProcess(file: File): Promise<void> {
       gloss: wantEnrich ? choice : undefined,
       model: glossModel,
     });
-    autoOpenId = jobId; // open this one automatically once it finishes
+    pendingOpen[jobId] = jobId; // a process job's entry id == its job id
     studioProgress.hidden = true;
     await refreshQueue();
     kickPolling();
@@ -387,7 +390,9 @@ async function studioProcess(file: File): Promise<void> {
 // --- queue polling + library -------------------------------------------------
 let polling = false;
 let prevJobs: Job[] = [];
-let autoOpenId: string | null = null;
+let currentEntryId: string | null = null;
+// job id → library entry to (re)open when that job finishes (process or translate).
+const pendingOpen: Record<string, string> = {};
 
 async function refreshQueue(): Promise<boolean> {
   const jobs = await fetchJobs();
@@ -396,10 +401,12 @@ async function refreshQueue(): Promise<boolean> {
   prevJobs = jobs;
   if (done.length > 0) {
     await refreshLibrary();
-    if (autoOpenId && done.includes(autoOpenId)) {
-      const id = autoOpenId;
-      autoOpenId = null;
-      void openLibraryItem(id);
+    for (const id of done) {
+      const entryId = pendingOpen[id];
+      if (entryId) {
+        delete pendingOpen[id];
+        void openLibraryItem(entryId);
+      }
     }
   }
   return hasActive(jobs);
@@ -439,9 +446,30 @@ async function openLibraryItem(id: string): Promise<void> {
     const loaded = await fetchResult(id);
     setAudioSource(libraryAudioUrl(id), loaded.audioRef?.filename ?? "audio");
     doc = loaded;
+    currentEntryId = id;
+    // Offer DE/EN translation of this transcript (reuses it; no re-transcription).
+    const current = loaded.sentences.find((s) => s.gloss)?.gloss?.lang;
+    if (current === "de" || current === "en") langSwitch.value = current;
+    langSwitchWrap.hidden = false;
     refreshLoadState();
   } catch (err) {
     note(err instanceof Error ? err.message : "Konnte den Eintrag nicht öffnen.", true);
+  }
+}
+
+// Switch the current entry's translation language: queue a re-gloss job (reusing
+// the transcript), then reopen the entry when it finishes (cached → quick).
+langSwitch.addEventListener("change", () => void switchLanguage(langSwitch.value));
+
+async function switchLanguage(lang: string): Promise<void> {
+  if (!currentEntryId) return;
+  try {
+    const jobId = await translateEntry(currentEntryId, lang, glossModel);
+    pendingOpen[jobId] = currentEntryId; // reopen this entry when the job is done
+    await refreshQueue();
+    kickPolling();
+  } catch (err) {
+    note(err instanceof Error ? err.message : "Übersetzen fehlgeschlagen.", true);
   }
 }
 
