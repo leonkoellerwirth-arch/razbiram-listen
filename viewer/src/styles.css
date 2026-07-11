@@ -64,6 +64,8 @@
 
 * { box-sizing: border-box; }
 
+/* --- Shell: 100dvh three-zone grid ----------------------------------------- */
+html { height: 100%; }
 body {
   margin: 0;
   font-family: var(--font-sans);
@@ -75,88 +77,159 @@ body {
   background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+  /* Three-zone shell */
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: 52px 1fr 72px;
+  overflow: hidden;
 }
+/* Player bar hidden → shrink its row to zero */
+#transport[hidden] { display: none; }
+body:has(#transport[hidden]) { grid-template-rows: 52px 1fr 0; }
 
-/* --- top bar / brand -------------------------------------------------------- */
+/* --- Top bar / brand -------------------------------------------------------- */
 .rz-topbar {
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 12px; padding: 16px 20px; max-width: 860px; margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 20px;
+  border-bottom: 1px solid var(--hairline);
+  background: var(--bg);
+  z-index: 10;
 }
+.rz-topbar-actions { display: flex; gap: 8px; align-items: center; }
 .rz-brand { display: flex; align-items: center; gap: 10px; }
 .rz-node { color: var(--primary); flex: none; }
 .rz-wordmark { font-weight: 800; letter-spacing: -0.02em; font-size: 22px; }
 .rz-wordmark .accent { color: var(--primary); }
 .rz-wordmark .sub { color: var(--muted); font-weight: 700; }
 
-/* Two-column app layout: main content + the queue/library sidebar (studio mode).
-   Collapses to a single column on narrow screens. */
-.rz-layout {
-  max-width: 1120px; margin: 0 auto;
-  display: grid; grid-template-columns: minmax(0, 760px) auto; gap: 24px;
-  justify-content: center; align-items: start;
+/* --- Content zone: spine + reader zone -------------------------------------- */
+.rz-content {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  overflow: hidden;
+  min-height: 0;
 }
-.rz-main { max-width: 760px; margin: 0 auto; padding: 8px 20px 72px; min-width: 0; }
-.rz-footer { max-width: 1120px; margin: 0 auto; padding: 0 20px 40px; font-size: 13px; }
 
-.rz-queue {
-  width: 320px; position: sticky; top: 16px; margin-top: 8px;
-  background: var(--surface); border: 1px solid var(--hairline);
-  border-radius: 16px; padding: 16px; max-height: calc(100vh - 32px); overflow-y: auto;
+/* --- Left spine ------------------------------------------------------------- */
+.rz-spine {
+  border-right: 1px solid var(--hairline);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
-.rz-queue-h { font-size: 16px; margin: 0 0 12px; }
-.rz-queue-sub { font-size: 13px; color: var(--muted); margin: 18px 0 8px; text-transform: uppercase; letter-spacing: 0.04em; }
-.rz-job { padding: 10px 0; border-bottom: 1px solid var(--hairline); }
-.rz-job-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rz-job-label { font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
-.rz-job.is-error .rz-job-label { color: var(--danger, var(--primary)); }
-.rz-lib { display: flex; align-items: stretch; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
-.rz-lib-open {
-  flex: 1; min-width: 0; text-align: left; display: grid; gap: 2px;
-  background: none; border: 0; padding: 6px 8px; border-radius: 10px; cursor: pointer; color: inherit;
+.rz-spine-search {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--hairline);
+  flex: none;
 }
-.rz-lib-open:hover:not(:disabled) { background: var(--surface-2); }
-.rz-lib-open:disabled { opacity: 0.5; cursor: default; }
-.rz-lib-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rz-lib-meta { font-size: 12px; color: var(--muted); }
-.rz-lib-actions { display: flex; align-items: center; gap: 4px; }
-.rz-icon-btn {
-  background: none; border: 1px solid var(--hairline); border-radius: 8px;
-  width: 28px; height: 28px; cursor: pointer; color: var(--muted); font-size: 13px; line-height: 1;
+.rz-spine-input {
+  width: 100%;
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 10px;
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
 }
-.rz-icon-btn:hover { background: var(--surface-2); color: var(--text, inherit); }
+.rz-spine-input:focus { border-color: var(--primary); }
+.rz-spine-nav {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 4px;
+}
+.rz-spine-mark {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 5px 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  font-family: var(--font-display);
+  border-radius: 6px;
+  transition: background 0.12s, color 0.12s;
+}
+.rz-spine-mark:hover { background: var(--surface-2); color: var(--text); }
+.rz-spine-mark:focus-visible { outline: 2px solid var(--primary); outline-offset: -1px; }
+.rz-spine-mark.is-current { color: var(--primary); font-weight: 700; }
+.rz-spine-rail {
+  padding: 8px 12px;
+  border-top: 1px solid var(--hairline);
+  flex: none;
+}
+.rz-spine-scrubber { width: 100%; accent-color: var(--primary); cursor: pointer; }
 
-@media (max-width: 980px) {
-  .rz-layout { grid-template-columns: 1fr; }
-  .rz-queue { width: auto; position: static; max-height: none; }
+/* --- Right reader zone (scrollable) ---------------------------------------- */
+.rz-reader-zone {
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-height: 0;
+  padding: 16px 28px 32px;
 }
+
+/* Reader header: CEFR badge + lang direction + language select
+   Sticks to top of the visible reader zone. */
+.rz-reader-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 4px 10px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--hairline);
+  position: sticky;
+  top: -16px; /* account for zone padding */
+  background: var(--bg);
+  z-index: 5;
+}
+.rz-reader-meta { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+
+/* --- Utility classes -------------------------------------------------------- */
 .rz-h1 { font-size: 26px; letter-spacing: -0.01em; margin: 4px 0 8px; }
 .rz-muted { color: var(--muted); }
 .rz-faint { color: var(--faint); }
 
 .rz-card {
-  background: var(--surface); border: 1px solid var(--hairline);
-  border-radius: var(--r-lg); box-shadow: var(--shadow-1); padding: 18px;
+  background: var(--surface);
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-1);
+  padding: 18px;
 }
 
-/* --- buttons ---------------------------------------------------------------- */
+/* --- Buttons ---------------------------------------------------------------- */
 .rz-btn {
-  font: inherit; font-weight: 700; padding: 8px 14px; border-radius: var(--r-md);
+  font: inherit; font-weight: 700; padding: 7px 13px; border-radius: var(--r-md);
   border: 1px solid var(--hairline); background: var(--surface); color: var(--text);
   cursor: pointer; transition: background 0.15s, border-color 0.15s, transform 0.05s;
+  white-space: nowrap;
 }
 .rz-btn:hover { background: var(--surface-2); }
 .rz-btn:active { transform: translateY(1px); }
+.rz-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 .rz-btn[aria-pressed="true"] { border-color: var(--primary); color: var(--primary); background: var(--primary-soft); }
 .rz-btn-primary { background: var(--primary); color: var(--on-primary); border-color: transparent; box-shadow: 0 4px 14px rgba(226, 83, 60, 0.3); }
 .rz-btn-primary:hover { background: var(--primary-2); }
 
-/* --- loader ----------------------------------------------------------------- */
-.rz-loader { transition: border-color 0.15s, background 0.15s; border: 1px solid var(--hairline); }
+/* --- Loader (manual two-file mode) ----------------------------------------- */
+.rz-loader { transition: border-color 0.15s, background 0.15s; }
 .rz-loader.is-over { border-color: var(--primary); background: var(--primary-soft); }
 .rz-picks { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
 .rz-pick { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
 .rz-pick-label { color: var(--muted); }
-.rz-note { margin: 14px 0 0; font-size: 14px; line-height: 1.65; }
+.rz-note { margin: 0 0 10px; font-size: 14px; line-height: 1.65; }
 .rz-note.is-warn { color: var(--text); }
 .rz-note.is-warn strong { color: var(--primary); }
 .rz-note code {
@@ -169,25 +242,30 @@ body {
   white-space: nowrap; color: var(--text);
 }
 
-/* --- studio (server mode) --------------------------------------------------- */
+/* --- Studio empty state ----------------------------------------------------- */
+.rz-studio {
+  padding: 40px 0;
+  max-width: 540px;
+  margin: 0 auto;
+  width: 100%;
+}
 .rz-studio-drop {
   border: 2px dashed var(--hairline); border-radius: var(--r-lg); background: var(--surface-2);
-  padding: 2.4rem 1.5rem; text-align: center; cursor: pointer;
+  padding: 2.6rem 1.5rem; text-align: center; cursor: pointer;
   transition: border-color 0.15s, background 0.15s;
 }
 .rz-studio-drop:hover, .rz-studio-drop.is-over { border-color: var(--primary); background: var(--primary-soft); }
-.rz-studio-opts { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin-top: 14px; }
+.rz-studio-drop:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
 .rz-select {
   font: inherit; font-weight: 700; padding: 6px 10px; border-radius: var(--r-md);
   border: 1px solid var(--hairline); background: var(--surface); color: var(--text); cursor: pointer;
 }
+.rz-select:focus-visible { outline: 2px solid var(--primary); }
 .rz-progress { margin-top: 16px; }
 .rz-progress-label { font-weight: 700; margin-bottom: 8px; }
 .rz-progress-track { height: 10px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--hairline); overflow: hidden; }
 .rz-progress-bar { height: 100%; width: 0%; background: var(--primary); border-radius: 999px; transition: width 0.3s ease; }
 .rz-progress.is-error .rz-progress-bar { background: var(--danger, var(--primary)); }
-/* Indeterminate: an analysis phase with no fraction yet — a moving stripe so the
-   bar never looks frozen while the machine is working. */
 .rz-progress.is-indeterminate .rz-progress-bar,
 .rz-progress-bar.is-anim {
   width: 35%;
@@ -199,27 +277,56 @@ body {
   100% { margin-left: 100%; }
 }
 
-/* --- transport -------------------------------------------------------------- */
-.rz-transport { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
-.rz-ctl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); font-size: 14px; }
+/* --- Persistent player bar (Zone 3) ---------------------------------------- */
+.rz-player-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 20px;
+  border-top: 1px solid var(--hairline);
+  background: var(--surface);
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+.rz-scrubber {
+  flex: 1;
+  min-width: 60px;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+.rz-ctl { display: inline-flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); font-size: 14px; white-space: nowrap; }
 .rz-ctl input[type="range"] { accent-color: var(--primary); }
-.rz-time { color: var(--muted); font-weight: 600; }
+.rz-time { color: var(--muted); font-weight: 600; white-space: nowrap; }
 .rz-numeral { font-family: var(--font-display); font-weight: 700; }
 
-/* --- reader / karaoke (Studio-style rows) ----------------------------------- */
-.rz-reader { margin-top: 18px; }
-
-.rz-reader-head {
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 4px 4px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--hairline);
-}
-.rz-reader-meta { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+/* --- Reader (karaoke sentence rows) ---------------------------------------- */
+.rz-reader { padding-top: 4px; }
 
 .rz-srow {
-  display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start;
-  padding: 10px 12px; border-radius: var(--r-md); transition: background 0.2s, box-shadow 0.2s;
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  gap: 12px;
+  align-items: start;
+  padding: 10px 12px;
+  border-radius: var(--r-md);
+  /* Spotlight transition (only opacity — motion respect below) */
+  transition: opacity 0.35s ease;
+  /* Virtualization: skip off-screen rendering for long transcripts */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 110px;
 }
+/* Spotlight: only activates once playback has started */
+.rz-reader.has-active .rz-srow { opacity: 0.28; }
+.rz-reader.has-active .rz-srow.is-near-2 { opacity: 0.56; }
+.rz-reader.has-active .rz-srow.is-near-1 { opacity: 0.76; }
+.rz-reader.has-active .rz-srow.is-current { opacity: 1; }
+
+/* Background highlight stays on is-current regardless of spotlight */
 .rz-srow.is-current { background: var(--surface); box-shadow: var(--shadow-1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .rz-srow { transition: none; }
+}
 
 .rz-listen {
   width: 36px; height: 36px; border-radius: 999px; margin-top: 4px;
@@ -229,6 +336,7 @@ body {
 .rz-listen:hover { background: var(--primary-soft); border-color: var(--primary); }
 .rz-listen:active { transform: translateY(1px); }
 .rz-listen:disabled { opacity: 0.4; cursor: default; }
+.rz-listen:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
 
 .rz-sbody { min-width: 0; }
 .rz-sentence {
@@ -256,7 +364,7 @@ body {
 .band-C1 { background: var(--band-C1-bg); color: var(--band-C1-fg); }
 .band-C2 { background: var(--band-C2-bg); color: var(--band-C2-fg); }
 
-/* --- popover ---------------------------------------------------------------- */
+/* --- Popover ---------------------------------------------------------------- */
 .rz-popover {
   position: absolute; z-index: 50; max-width: 260px;
   background: var(--surface); border: 1px solid var(--hairline);
@@ -274,10 +382,90 @@ body {
 .rz-collect:hover { border-color: var(--primary); color: var(--primary); }
 .rz-collect[aria-pressed="true"] { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
 
-/* --- seed bar --------------------------------------------------------------- */
+/* --- Seed bar (sticky at bottom of reader zone scroll) --------------------- */
 .rz-seedbar {
-  position: sticky; bottom: 12px; margin-top: 18px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  position: sticky;
+  bottom: 12px;
+  margin-top: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 .rz-seed-count { font-weight: 700; }
 .rz-seed-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+/* --- Slide-over drawer + backdrop ------------------------------------------ */
+.rz-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.38);
+  z-index: 40;
+}
+.rz-backdrop.is-open { display: block; }
+
+.rz-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 320px;
+  height: 100%;
+  background: var(--surface);
+  border-left: 1px solid var(--hairline);
+  box-shadow: var(--shadow-2);
+  z-index: 50;
+  overflow-y: auto;
+  padding: 16px;
+  transform: translateX(100%);
+  transition: transform 0.22s ease;
+}
+.rz-drawer.is-open { transform: translateX(0); }
+@media (prefers-reduced-motion: reduce) {
+  .rz-drawer { transition: none; }
+}
+.rz-drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.rz-drawer-title { font-size: 16px; margin: 0; }
+
+/* --- Queue / Library components (used inside drawer) ----------------------- */
+.rz-queue-sub {
+  font-size: 13px; color: var(--muted); margin: 18px 0 8px;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.rz-job { padding: 10px 0; border-bottom: 1px solid var(--hairline); display: flex; align-items: center; gap: 8px; }
+.rz-job-main { flex: 1; min-width: 0; }
+.rz-job-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rz-job-label { font-size: 12px; color: var(--muted); margin: 2px 0 6px; }
+.rz-job.is-error .rz-job-label { color: var(--danger, var(--primary)); }
+.rz-lib { display: flex; align-items: stretch; gap: 6px; padding: 6px 0; border-bottom: 1px solid var(--hairline); }
+.rz-lib-open {
+  flex: 1; min-width: 0; text-align: left; display: grid; gap: 2px;
+  background: none; border: 0; padding: 6px 8px; border-radius: 10px; cursor: pointer; color: inherit;
+}
+.rz-lib-open:hover:not(:disabled) { background: var(--surface-2); }
+.rz-lib-open:disabled { opacity: 0.5; cursor: default; }
+.rz-lib-title { font-weight: 700; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rz-lib-meta { font-size: 12px; color: var(--muted); }
+.rz-lib-actions { display: flex; align-items: center; gap: 4px; }
+.rz-icon-btn {
+  background: none; border: 1px solid var(--hairline); border-radius: 8px;
+  width: 28px; height: 28px; cursor: pointer; color: var(--muted); font-size: 13px; line-height: 1;
+}
+.rz-icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.rz-icon-btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+
+/* --- Responsive: collapse spine on narrow screens -------------------------- */
+@media (max-width: 640px) {
+  .rz-content { grid-template-columns: 1fr; }
+  .rz-spine { display: none; }
+  .rz-reader-zone { padding: 12px 16px 24px; }
+  .rz-player-bar { gap: 8px; padding: 0 12px; }
+  .rz-player-bar .rz-ctl { display: none; } /* hide tempo on narrow */
+  .rz-drawer { width: 100%; }
+}

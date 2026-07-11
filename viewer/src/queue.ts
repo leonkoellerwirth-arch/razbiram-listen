@@ -10,9 +10,9 @@ export function hasActive(jobs: Job[]): boolean {
   return jobs.some(isActive);
 }
 
-/** Jobs shown in the queue: active + failed (done ones live in the library). */
+/** Jobs shown in the queue: active + failed (done/cancelled ones drop off). */
 export function queueJobs(jobs: Job[]): Job[] {
-  return jobs.filter((j) => j.status !== "done");
+  return jobs.filter((j) => j.status !== "done" && j.status !== "cancelled");
 }
 
 /** Ids that transitioned to "done" between two snapshots (for auto-open + refresh). */
@@ -67,21 +67,34 @@ function el<T extends HTMLElement>(tag: string, className?: string, text?: strin
   return node;
 }
 
-/** Render the active-jobs list into `container`. */
-export function renderJobs(container: HTMLElement, jobs: Job[]): void {
+export interface JobHandlers {
+  onCancel: (id: string) => void;
+}
+
+/** Render the active-jobs list into `container`; active jobs get a cancel ✕. */
+export function renderJobs(container: HTMLElement, jobs: Job[], handlers?: JobHandlers): void {
   container.textContent = "";
   const shown = queueJobs(jobs);
   if (shown.length === 0) return;
   for (const job of shown) {
     const p = jobProgress(job);
     const row = el("div", `rz-job${job.status === "error" ? " is-error" : ""}`);
-    row.appendChild(el("div", "rz-job-title", job.title));
-    row.appendChild(el("div", "rz-job-label", p.label));
+    const main = el("div", "rz-job-main");
+    main.appendChild(el("div", "rz-job-title", job.title));
+    main.appendChild(el("div", "rz-job-label", p.label));
     const track = el("div", "rz-progress-track");
     const bar = el<HTMLElement>("div", `rz-progress-bar${p.indeterminate ? " is-anim" : ""}`);
     if (!p.indeterminate) bar.style.width = `${Math.round(p.fraction * 100)}%`;
     track.appendChild(bar);
-    row.appendChild(track);
+    main.appendChild(track);
+    row.appendChild(main);
+    if (handlers && isActive(job)) {
+      const cancel = el<HTMLButtonElement>("button", "rz-icon-btn", "✕");
+      cancel.type = "button";
+      cancel.title = "Abbrechen";
+      cancel.addEventListener("click", () => handlers.onCancel(job.id));
+      row.appendChild(cancel);
+    }
     container.appendChild(row);
   }
 }

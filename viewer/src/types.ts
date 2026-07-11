@@ -70,7 +70,7 @@ export interface Job {
   id: string;
   filename: string;
   title: string;
-  status: "queued" | "running" | "done" | "error";
+  status: "queued" | "running" | "done" | "error" | "cancelled";
   stage?: string | null;
   fraction?: number | null;
   error?: string | null;

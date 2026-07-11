@@ -28,6 +28,11 @@ export async function submitJob(file: File, opts: SubmitOptions): Promise<string
   return (await resp.json()).jobId as string;
 }
 
+/** Cancel a queued or running job (aborts at its next progress step). */
+export async function cancelJob(id: string): Promise<void> {
+  await fetch(`/jobs/${id}`, { method: "DELETE" });
+}
+
 export async function fetchJobs(): Promise<Job[]> {
   const resp = await fetch("/jobs");
   if (!resp.ok) return [];

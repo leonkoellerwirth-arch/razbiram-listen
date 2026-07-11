@@ -15,6 +15,7 @@
     />
   </head>
   <body>
+    <!-- Zone 1: Topbar (52 px) ------------------------------------------------ -->
     <header class="rz-topbar">
       <div class="rz-brand">
         <svg class="rz-node" width="26" height="26" viewBox="0 0 34 34" aria-hidden="true">
@@ -30,99 +31,143 @@
         </svg>
         <span class="rz-wordmark">razb<span class="accent">i</span>ram<span class="sub">-listen</span></span>
       </div>
-      <button id="theme" class="rz-btn" type="button" aria-label="Toggle colour scheme">☾ Dark</button>
+      <div class="rz-topbar-actions">
+        <button id="library-btn" class="rz-btn" type="button" hidden
+          aria-label="Bibliothek und Warteschlange öffnen">📚 Bibliothek</button>
+        <button id="theme" class="rz-btn" type="button" aria-label="Farbschema wechseln">☾ Dark</button>
+      </div>
     </header>
 
-    <div class="rz-layout">
-    <main class="rz-main">
-      <section class="rz-card rz-studio" id="studio" hidden>
-        <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
-        <p class="rz-muted" style="margin: 0 0 16px">
-          Zieh eine Audiodatei hierher — sie wird <strong>lokal</strong> transkribiert und
-          zeitgenau an den Text ausgerichtet. Übersetzung &amp; CEFR sind optional.
-          Nichts verlässt deinen Rechner, kein Datei-Jonglieren.
-        </p>
-        <div class="rz-studio-drop" id="studio-drop" role="button" tabindex="0">
-          <input id="studio-input" type="file" accept="audio/*" hidden />
-          <div style="font-size: 42px">🎧</div>
-          <div style="font-weight: 700; font-size: 18px">Audiodatei hierher ziehen</div>
-          <div class="rz-faint" style="margin-top: 4px">oder klicken zum Auswählen</div>
+    <!-- Zone 2: Content (spine + reader zone) --------------------------------- -->
+    <div class="rz-content">
+
+      <!-- Left spine: search · chapter marks · position rail -->
+      <aside class="rz-spine" id="spine">
+        <div class="rz-spine-search">
+          <input id="spine-search" type="search" placeholder="Suchen …"
+            class="rz-spine-input" aria-label="Transkript durchsuchen" />
         </div>
-        <div class="rz-studio-opts">
-          <label class="rz-ctl">Übersetzung &amp; CEFR
-            <select id="studio-gloss" class="rz-select">
+        <nav class="rz-spine-nav" id="spine-nav" aria-label="Zeitmarken"></nav>
+        <div class="rz-spine-rail">
+          <input id="spine-pos" type="range" min="0" max="1000" value="0"
+            class="rz-spine-scrubber" aria-label="Position im Audio" />
+        </div>
+      </aside>
+
+      <!-- Right: scrollable reader zone -->
+      <main class="rz-reader-zone" id="reader-zone">
+
+        <!-- Status note (visible in all states) -->
+        <p class="rz-note" id="load-note" hidden></p>
+
+        <!-- Unified reader header: CEFR meta + language control -->
+        <div class="rz-reader-head" id="reader-head" hidden>
+          <div class="rz-reader-meta" id="reader-meta"></div>
+          <label class="rz-ctl">
+            <select id="lang-select" class="rz-select" aria-label="Übersetzungssprache">
               <option value="en">English</option>
               <option value="de">Deutsch</option>
-              <option value="none">nur Transkript (schnell)</option>
+              <option value="off">nur Transkript</option>
             </select>
           </label>
-          <span class="rz-faint" id="studio-model"></span>
         </div>
-        <p class="rz-faint" id="studio-enrich-hint" hidden style="margin: 6px 0 0"></p>
-        <div class="rz-progress" id="studio-progress" hidden>
-          <div class="rz-progress-label" id="studio-progress-label">…</div>
-          <div class="rz-progress-track"><div class="rz-progress-bar" id="studio-progress-bar"></div></div>
+
+        <!-- Studio empty state (shown when studio server is reachable) -->
+        <section class="rz-studio" id="studio" hidden>
+          <h2 class="rz-h1" style="text-align:center;margin-bottom:16px">
+            Listen to Bulgarian, word by word
+          </h2>
+          <p class="rz-muted" style="text-align:center;margin:0 auto 20px;max-width:480px">
+            Zieh eine Audiodatei hierher — sie wird <strong>lokal</strong> transkribiert
+            und zeitgenau an den Text ausgerichtet. Nichts verlässt deinen Rechner,
+            kein Datei-Jonglieren.
+          </p>
+          <div class="rz-studio-drop" id="studio-drop" role="button" tabindex="0"
+            aria-label="Audiodatei hierher ziehen oder klicken">
+            <input id="studio-input" type="file" accept="audio/*" hidden />
+            <div style="font-size:48px">🎧</div>
+            <div style="font-weight:700;font-size:20px;margin-top:8px">
+              Audiodatei hierher ziehen
+            </div>
+            <div class="rz-faint" style="margin-top:6px">oder klicken zum Auswählen</div>
+          </div>
+          <p class="rz-faint" style="text-align:center;margin:12px 0 0" id="studio-model"></p>
+          <p class="rz-faint" id="studio-enrich-hint" hidden style="text-align:center;margin:6px 0 0"></p>
+          <div class="rz-progress" id="studio-progress" hidden>
+            <div class="rz-progress-label" id="studio-progress-label">…</div>
+            <div class="rz-progress-track">
+              <div class="rz-progress-bar" id="studio-progress-bar"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Manual two-file loader (no studio server) -->
+        <section class="rz-loader rz-card" id="loader">
+          <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
+          <p class="rz-muted">
+            Load a <code>.listen.json</code> (from <code>razbiram-listen process</code>)
+            and its audio file — drag &amp; drop both here, or pick them below.
+            Everything stays on your machine — no upload.
+          </p>
+          <div class="rz-picks">
+            <label class="rz-pick">
+              <span class="rz-pick-label">1 · .listen.json</span>
+              <input id="doc-input" type="file" accept=".json,application/json" />
+            </label>
+            <label class="rz-pick">
+              <span class="rz-pick-label">2 · audio file</span>
+              <input id="audio-input" type="file" accept="audio/*" />
+            </label>
+          </div>
+        </section>
+
+        <!-- Karaoke reader (sentence rows filled by karaoke.ts) -->
+        <section class="rz-reader" id="reader" hidden></section>
+
+        <!-- Seed bar (sticky at bottom of the scroll zone) -->
+        <div class="rz-seedbar rz-card" id="seedbar" hidden>
+          <span class="rz-seed-count">
+            <span class="rz-numeral" id="seed-count">0</span> Wörter gesammelt
+          </span>
+          <span class="rz-seed-actions">
+            <button id="seed-export-seed" class="rz-btn rz-btn-primary" type="button">
+              razbiram Seed JSON
+            </button>
+            <button id="seed-export-deck" class="rz-btn" type="button">Anki deck.json</button>
+            <button id="seed-clear" class="rz-btn" type="button">Leeren</button>
+          </span>
         </div>
-      </section>
 
-      <section class="rz-card rz-loader" id="loader">
-        <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
-        <p class="rz-muted">
-          Load a <code>.listen.json</code> (from <code>razbiram-listen process</code>) and its
-          audio file — drag &amp; drop both here, or pick them below. Everything stays on your
-          machine — no upload.
-        </p>
-        <div class="rz-picks">
-          <label class="rz-pick">
-            <span class="rz-pick-label">1 · .listen.json</span>
-            <input id="doc-input" type="file" accept=".json,application/json" />
-          </label>
-          <label class="rz-pick">
-            <span class="rz-pick-label">2 · audio file</span>
-            <input id="audio-input" type="file" accept="audio/*" />
-          </label>
-        </div>
-        <p class="rz-note" id="load-note" hidden></p>
-      </section>
-
-      <section class="rz-transport rz-card" id="transport" hidden>
-        <button id="play" class="rz-btn rz-btn-primary" type="button">▶ Play</button>
-        <span class="rz-time"><span id="cur" class="rz-numeral">0:00</span> / <span id="dur" class="rz-numeral">0:00</span></span>
-        <label class="rz-ctl">Tempo <span id="rate-val" class="rz-numeral">1.0×</span>
-          <input id="rate" type="range" min="0.5" max="1.5" step="0.1" value="1" />
-        </label>
-        <button id="loop" class="rz-btn" type="button" aria-pressed="false">↺ Loop sentence</button>
-        <label class="rz-ctl" id="lang-switch-wrap" hidden>Übersetzung
-          <select id="lang-switch" class="rz-select">
-            <option value="en">English</option>
-            <option value="de">Deutsch</option>
-          </select>
-        </label>
-      </section>
-
-      <section class="rz-reader" id="reader" hidden></section>
-
-      <section class="rz-seedbar rz-card" id="seedbar" hidden>
-        <span class="rz-seed-count"><span class="rz-numeral" id="seed-count">0</span> Wörter gesammelt</span>
-        <span class="rz-seed-actions">
-          <button id="seed-export-seed" class="rz-btn rz-btn-primary" type="button">razbiram Seed JSON</button>
-          <button id="seed-export-deck" class="rz-btn" type="button">Anki deck.json</button>
-          <button id="seed-clear" class="rz-btn" type="button">Leeren</button>
-        </span>
-      </section>
-    </main>
-
-      <aside class="rz-queue" id="queue" hidden>
-        <h2 class="rz-queue-h">Warteschlange &amp; Bibliothek</h2>
-        <div id="queue-jobs" class="rz-queue-jobs"></div>
-        <h3 class="rz-queue-sub">Bibliothek</h3>
-        <div id="queue-library" class="rz-queue-library"></div>
-      </aside>
+      </main>
     </div>
 
-    <footer class="rz-footer rz-faint">
-      Part of the razbiram ecosystem · razbiram-listen · local-first, no telemetry · visual identity © razbiram.com
+    <!-- Zone 3: Persistent player bar (72 px) --------------------------------- -->
+    <footer class="rz-player-bar" id="transport" hidden>
+      <button id="play" class="rz-btn rz-btn-primary" type="button">▶ Play</button>
+      <span class="rz-time">
+        <span id="cur" class="rz-numeral">0:00</span> /
+        <span id="dur" class="rz-numeral">0:00</span>
+      </span>
+      <input id="scrubber" type="range" min="0" max="1000" value="0"
+        class="rz-scrubber" aria-label="Wiedergabeposition" />
+      <button id="loop" class="rz-btn" type="button" aria-pressed="false">↺ Loop</button>
+      <label class="rz-ctl">Tempo <span id="rate-val" class="rz-numeral">1.0×</span>
+        <input id="rate" type="range" min="0.5" max="1.5" step="0.1" value="1" />
+      </label>
     </footer>
+
+    <!-- Slide-over drawer: queue + library ------------------------------------ -->
+    <div class="rz-backdrop" id="drawer-backdrop" aria-hidden="true"></div>
+    <aside class="rz-drawer" id="queue" aria-label="Bibliothek und Warteschlange">
+      <div class="rz-drawer-head">
+        <h2 class="rz-drawer-title">Warteschlange &amp; Bibliothek</h2>
+        <button id="drawer-close" class="rz-icon-btn" type="button" aria-label="Schließen">✕</button>
+      </div>
+      <h3 class="rz-queue-sub">Aktiv</h3>
+      <div id="queue-jobs" class="rz-queue-jobs"></div>
+      <h3 class="rz-queue-sub">Gespeichert</h3>
+      <div id="queue-library" class="rz-queue-library"></div>
+    </aside>
 
     <script type="module" src="/src/main.ts"></script>
   </body>

@@ -7,6 +7,8 @@ import type { ListenDocument, Token } from "./types";
 export interface KaraokeHandle {
   /** Update highlights for the current audio time (seconds). */
   update(t: number): void;
+  /** Filter sentence rows by query string (empty = show all). */
+  filter(query: string): void;
 }
 
 export interface RenderOptions {
@@ -17,10 +19,31 @@ export interface RenderOptions {
 
 const TIMED_KINDS = new Set(["word", "number"]);
 
+/** Populate the reader-meta element with the CEFR badge + language direction.
+ *  Called from main.ts after the document loads; does not touch #reader itself. */
+export function renderReaderMeta(doc: ListenDocument, container: HTMLElement): void {
+  container.innerHTML = "";
+  const band = overallBand(doc);
+  if (band) {
+    const badge = document.createElement("span");
+    badge.className = `rz-badge ${bandClass(band)}`;
+    badge.textContent = band;
+    container.appendChild(badge);
+  }
+  const glossLang = doc.sentences.find((s) => s.gloss?.text)?.gloss?.lang ?? null;
+  const dir = document.createElement("span");
+  dir.className = "rz-faint";
+  dir.textContent = glossLang ? `${doc.lang ?? "bg"} → ${glossLang}` : (doc.lang ?? "bg");
+  container.appendChild(dir);
+}
+
 /** Render the document as a Studio-style reading view (sentence rows with a
  *  per-sentence Listen button and an optional translation), and return a handle
  *  that syncs highlights to the audio clock. `onSeek(seconds)` fires on a word
- *  click or a sentence's Listen button; the popover's ＋ calls `onCollect`. */
+ *  click or a sentence's Listen button; the popover's ＋ calls `onCollect`.
+ *
+ *  The reader header (CEFR badge, lang direction) is NOT rendered here — call
+ *  `renderReaderMeta(doc, container)` separately to populate `#reader-meta`. */
 export function renderKaraoke(
   doc: ListenDocument,
   root: HTMLElement,
@@ -28,7 +51,7 @@ export function renderKaraoke(
 ): KaraokeHandle {
   const onSeek = opts.onSeek;
   root.innerHTML = "";
-  root.dataset.translate = "off";
+  // data-translate is controlled externally by the unified lang-select in main.ts
 
   const timingByStart = tokenTimingByStart(doc.timings);
   const segStartBySi = new Map<number, number>();
@@ -39,8 +62,6 @@ export function renderKaraoke(
   for (const v of doc.vocab ?? []) {
     if (v.lemma && v.gloss?.text) glossByKey.set(v.lemma.toLowerCase(), v.gloss.text);
   }
-
-  root.appendChild(buildHeader(doc, root));
 
   const popover = new Popover({ onCollect: opts.onCollect, isCollected: opts.isCollected });
   const tokenEls = new Map<number, HTMLElement>();
@@ -119,58 +140,44 @@ export function renderKaraoke(
         if (start !== null) tokenEls.get(start)?.classList.add("is-active");
         activeStart = start;
       }
+
       const si = activeSentenceIndex(segments, t);
       if (si !== activeSi) {
-        if (activeSi !== null) rowEls[activeSi]?.classList.remove("is-current");
-        if (si !== null) {
-          const el = rowEls[si];
-          el?.classList.add("is-current");
-          el?.scrollIntoView({ block: "center", behavior: "smooth" });
+        // Clear classes from old active row and its spotlight neighbours
+        if (activeSi !== null) {
+          rowEls[activeSi]?.classList.remove("is-current");
+          for (let d = 1; d <= 2; d++) {
+            rowEls[activeSi - d]?.classList.remove(`is-near-${d}`);
+            rowEls[activeSi + d]?.classList.remove(`is-near-${d}`);
+          }
         }
+
+        if (si !== null) {
+          const activeEl = rowEls[si];
+          activeEl?.classList.add("is-current");
+          activeEl?.scrollIntoView({ block: "center", behavior: "smooth" });
+          for (let d = 1; d <= 2; d++) {
+            rowEls[si - d]?.classList.add(`is-near-${d}`);
+            rowEls[si + d]?.classList.add(`is-near-${d}`);
+          }
+          root.classList.add("has-active");
+        } else {
+          root.classList.remove("has-active");
+        }
+
         activeSi = si;
       }
     },
+
+    filter(query: string): void {
+      const q = query.toLowerCase().trim();
+      for (const row of rowEls) {
+        const text =
+          row.querySelector(".rz-sentence")?.textContent?.toLowerCase() ?? "";
+        row.hidden = q !== "" && !text.includes(q);
+      }
+    },
   };
-}
-
-/** The reader header: overall CEFR badge, language direction, translation toggle. */
-function buildHeader(doc: ListenDocument, root: HTMLElement): HTMLElement {
-  const head = document.createElement("div");
-  head.className = "rz-reader-head";
-
-  const meta = document.createElement("div");
-  meta.className = "rz-reader-meta";
-  const band = overallBand(doc);
-  if (band) {
-    const badge = document.createElement("span");
-    badge.className = `rz-badge ${bandClass(band)}`;
-    badge.textContent = band;
-    meta.appendChild(badge);
-  }
-  // The gloss language actually present (core mode has none → no translation UI).
-  const glossLang = doc.sentences.find((s) => s.gloss?.text)?.gloss?.lang ?? null;
-  const dir = document.createElement("span");
-  dir.className = "rz-faint";
-  dir.textContent = glossLang ? `${doc.lang ?? "bg"} → ${glossLang}` : (doc.lang ?? "bg");
-  meta.appendChild(dir);
-
-  head.appendChild(meta);
-
-  if (glossLang) {
-    const toggle = document.createElement("button");
-    toggle.className = "rz-btn rz-translate";
-    toggle.type = "button";
-    toggle.setAttribute("aria-pressed", "false");
-    toggle.textContent = "Show translation";
-    toggle.addEventListener("click", () => {
-      const on = root.dataset.translate === "on";
-      root.dataset.translate = on ? "off" : "on";
-      toggle.setAttribute("aria-pressed", on ? "false" : "true");
-      toggle.textContent = on ? "Show translation" : "Hide translation";
-    });
-    head.appendChild(toggle);
-  }
-  return head;
 }
 
 function seedItem(tok: Token, gloss: string | null): SeedItem {
@@ -183,7 +190,7 @@ function seedItem(tok: Token, gloss: string | null): SeedItem {
   };
 }
 
-/** Overall band = the document estimate if present, else the hardest word band. */
+/** Overall band = the hardest word band present in the document. */
 function overallBand(doc: ListenDocument): string | null {
   let best = -1;
   for (const s of doc.sentences) {
