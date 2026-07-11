@@ -36,6 +36,16 @@ SemVer. The `.listen.json` document shape is versioned separately via
   JSON** and a **CrowdAnki `deck.json`** (razbiram-anki-compatible, front = lemma
   / back = gloss). Roundtrip-tested against razbiram-anki's own deck shape check.
 
+- **Viewer load guidance.** The viewer now always says what's missing: loading
+  only audio explains that it does not transcribe itself and shows the exact
+  `razbiram-listen process …` command to generate the `.listen.json`; loading only
+  the transcript asks for the audio. No more silent "player but nothing happens".
+- **Local glossing wired up.** `process --gloss de --gloss-model aya-expanse:8b`
+  runs fully local (Ollama); stages degrade gracefully to what the install has —
+  morphology needs the optional `classla` extra, difficulty/vocab need the hub's
+  `data/`+`config/` (`RAZBIRAM_NLP_DATA_DIR`/`RAZBIRAM_NLP_CONFIG_DIR`), and without
+  either you still get sentence translations. Verified end-to-end (Whisper +
+  classla + Ollama).
 - **Open-URL import.** `process --url <direct-audio | podcast-RSS>` (with
   `--episode N`) fetches one open source the user has rights to and transcribes it
   locally; `--audio`/`--url` are mutually exclusive. A host **denylist actively

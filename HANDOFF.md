@@ -4,6 +4,62 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ---
 
+## Session 1 — Viewer load-state guidance (UX fix)
+
+### Problem
+- A user who loaded only the audio saw the player but nothing else, with **no hint**
+  that a `.listen.json` (transcript+translation) is required and that the viewer
+  does not transcribe itself. "We were blind."
+
+### Done
+- `refreshLoadState()` in the viewer now always reports state: **audio-only** →
+  explains the viewer doesn't transcribe and shows the exact copy-pasteable
+  `razbiram-listen process --audio "<name>" --gloss de --gloss-model aya-expanse:8b
+  --out "<name>.listen.json"` command; **transcript-only** → asks for the audio;
+  **both** → starts. Player/reader/seed stay hidden until both are present.
+- Verified a real file end-to-end: a user-provided local `.m4a` (3 min, from their
+  own ytscapper tool) → `process` → `.listen.json` with 25 sentences, 99% coverage,
+  C1, all sentences translated to German. Confirms the combined workflow (their tool
+  fetches the local audio, razbiram does transcript+translation+karaoke).
+
+### Open idea (proposed, not built): companion `serve` for live progress
+- The real "drop audio → watch it transcribe → read" flow needs a **local**
+  companion (`razbiram-listen serve`): the viewer posts the audio to a localhost
+  server that runs `process` with a streamed progress bar, then loads the result.
+  Local-first (no cloud). A candidate next milestone if we want zero-CLI UX.
+
+---
+
+## Session 1 — Full local glossing wired (classla + Ollama)
+
+### Done (closes the gaps from the previous note)
+- CLI: `--gloss-model` (e.g. `aya-expanse:8b`) → `process_audio(gloss_model=…)` →
+  `OllamaGlossProvider(model=…)`.
+- `pipeline._available_stages()` selects stages by what's installed: morphology only
+  if `classla` is importable; a `FileNotFoundError` (missing hub data/config) drops
+  difficulty/vocab and retries, so `process` never crashes — sentence glosses always
+  survive. `--gloss-model` + stage-selection unit-tested (41 Python tests green).
+- `classla` installed + BG model present → **full pipeline verified end-to-end**:
+  Whisper small + classla morphology + difficulty/vocab + Ollama gloss, 100%/73%
+  coverage, proper lemma/POS/CEFR (времето→време NOUN A2; е→съм AUX A1) and real
+  German sentence translations.
+- Demo (`examples/_demo/`, git-ignored) regenerated with morphology → proper
+  lemmas/POS/CEFR + real translations.
+- Docs: README "Glosses & CEFR — fully local" + `.env.example`
+  (`RAZBIRAM_NLP_DATA_DIR`/`RAZBIRAM_NLP_CONFIG_DIR`).
+
+### Hub follow-up (ADR/issue candidate)
+- The hub wheel doesn't ship `data/`+`config/`, so difficulty/vocab need env vars
+  pointing at a checkout. Cleanest fix is on the hub side (package the data). Filed
+  as a note for the hub.
+
+### Next (M7 — Politur)
+- Own recorded example under `examples/sample-audio/` + committed
+  `sample.listen.json` + `SOURCES.md`; GIF/screenshots; README polish; transcript-
+  edit mode; fresh-clone acceptance.
+
+---
+
 ## Session 1 — Local translation verified; viewer gloss-lookup fix
 
 ### Verified

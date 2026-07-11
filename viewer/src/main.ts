@@ -57,7 +57,7 @@ themeBtn.addEventListener("click", () => {
 async function handleDoc(file: File): Promise<void> {
   try {
     doc = parseListenDocument(await file.text());
-    maybeStart();
+    refreshLoadState();
   } catch (err) {
     doc = null;
     note(err instanceof ListenError ? err.message : "Konnte die .listen.json nicht lesen.", true);
@@ -69,7 +69,7 @@ function handleAudio(file: File): void {
   audioUrl = URL.createObjectURL(file);
   audioName = file.name;
   player.load(audioUrl);
-  maybeStart();
+  refreshLoadState();
 }
 
 function route(file: File): void {
@@ -103,12 +103,49 @@ loader.addEventListener("drop", (e) => {
   for (const file of Array.from(e.dataTransfer?.files ?? [])) route(file);
 });
 
-function maybeStart(): void {
+/** Decide what to show based on which of the two files are loaded, and always
+ *  tell the user what is still missing — the viewer never transcribes itself. */
+function refreshLoadState(): void {
+  const haveDoc = doc !== null;
+  const haveAudio = audioUrl !== null;
+
+  if (haveDoc && haveAudio) {
+    start();
+    return;
+  }
+
+  transport.hidden = true;
+  reader.hidden = true;
+  seedbar.hidden = true;
+  cancelAnimationFrame(rafId);
+
+  if (haveAudio && !haveDoc) {
+    const base = (audioName ?? "audio").replace(/\.[^.]+$/, "");
+    noteHTML(
+      `<strong>✓ Audio geladen:</strong> ${esc(audioName ?? "")}.<br>` +
+        "Es fehlt das <strong>Transkript</strong> (<code>.listen.json</code>) — der Viewer " +
+        "transkribiert bewusst nicht selbst. Erzeuge es einmalig lokal (transkribiert + " +
+        "übersetzt; je nach Länge ein paar Minuten):<br>" +
+        `<code class="rz-cmd">razbiram-listen process --audio "${esc(audioName ?? "")}" ` +
+        `--gloss de --gloss-model aya-expanse:8b --out "${esc(base)}.listen.json"</code>` +
+        "Dann die erzeugte <code>.listen.json</code> oben in Slot 1 laden.",
+      true,
+    );
+  } else if (haveDoc && !haveAudio) {
+    note(
+      `✓ Transkript geladen (${doc?.sentences.length ?? 0} Sätze). Jetzt die passende Audiodatei laden.`,
+      false,
+    );
+  }
+}
+
+function start(): void {
   if (!doc || !audioUrl) return;
+  const d = doc;
 
   transport.hidden = false;
   reader.hidden = false;
-  karaoke = renderKaraoke(doc, reader, {
+  karaoke = renderKaraoke(d, reader, {
     onSeek: (seconds) => {
       player.seek(seconds);
       if (player.paused) void player.play();
@@ -121,11 +158,11 @@ function maybeStart(): void {
   });
   updateSeedBar();
 
-  const expected = doc.audioRef?.filename;
+  const expected = d.audioRef?.filename;
   if (expected && audioName && expected !== audioName) {
     note(`Hinweis: Diese .listen.json wurde für „${expected}“ erzeugt, geladen ist „${audioName}“.`, true);
   } else {
-    note(`Bereit — ${doc.sentences.length} Sätze geladen.`, false);
+    note(`Bereit — ${d.sentences.length} Sätze. Play drücken; „Show translation“ zeigt die Übersetzung.`, false);
   }
 
   cancelAnimationFrame(rafId);
@@ -216,6 +253,19 @@ function note(message: string, warn: boolean): void {
   loadNote.textContent = message;
   loadNote.hidden = false;
   loadNote.classList.toggle("is-warn", warn);
+}
+
+function noteHTML(html: string, warn: boolean): void {
+  loadNote.innerHTML = html;
+  loadNote.hidden = false;
+  loadNote.classList.toggle("is-warn", warn);
+}
+
+function esc(s: string): string {
+  return s.replace(
+    /[&<>"]/g,
+    (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c] as string,
+  );
 }
 
 function fmt(seconds: number): string {

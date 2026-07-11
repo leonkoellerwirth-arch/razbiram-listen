@@ -117,8 +117,18 @@ body {
 .rz-picks { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 16px; }
 .rz-pick { display: grid; gap: 6px; font-weight: 700; font-size: 14px; }
 .rz-pick-label { color: var(--muted); }
-.rz-note { margin: 14px 0 0; font-size: 14px; }
-.rz-note.is-warn { color: var(--primary); }
+.rz-note { margin: 14px 0 0; font-size: 14px; line-height: 1.65; }
+.rz-note.is-warn { color: var(--text); }
+.rz-note.is-warn strong { color: var(--primary); }
+.rz-note code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em; background: var(--surface-2); border: 1px solid var(--hairline);
+  border-radius: 6px; padding: 1px 5px;
+}
+.rz-note code.rz-cmd {
+  display: block; margin: 8px 0; padding: 9px 11px; overflow-x: auto;
+  white-space: nowrap; color: var(--text);
+}
 
 /* --- transport -------------------------------------------------------------- */
 .rz-transport { margin-top: 18px; display: flex; flex-wrap: wrap; align-items: center; gap: 14px; }
