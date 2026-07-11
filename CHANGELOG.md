@@ -6,6 +6,13 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-07-11
+
+First tagged release: the end-to-end studio works — drop a local Bulgarian audio
+file in the browser and read it, word by word, synced to the audio. Local-first
+and BYO-audio. razbiram-nlp enrichment (glosses/CEFR) is used when available; the
+core (transcript + time-accurate alignment + karaoke) stands on its own.
+
 ### Added
 - **M1 — Models + scaffold.** `ListenDocument` (an `EnrichedDocument` extended
   with `timings` and `audioRef`), `schemaVersion` 1.0.0, package scaffold,

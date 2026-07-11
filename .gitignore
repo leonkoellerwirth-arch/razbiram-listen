@@ -15,6 +15,9 @@ venv/
 .whisper_cache/
 models/
 
+# razbiram-nlp gloss cache (local LLM gloss results; runtime data, never committed)
+.razbiram_cache/
+
 # Node / Vite viewer (M5)
 viewer/node_modules/
 viewer/dist/
