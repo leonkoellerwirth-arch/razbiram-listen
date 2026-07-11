@@ -2,6 +2,25 @@
 
 **Listen to any Bulgarian audio and understand it word by word — locally, privately, with a learning loop.**
 
+[![CI](https://github.com/leonkoellerwirth-arch/razbiram-listen/actions/workflows/ci.yml/badge.svg)](https://github.com/leonkoellerwirth-arch/razbiram-listen/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-informational.svg)](LICENSE)
+![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+![Privacy: local-first](https://img.shields.io/badge/privacy-local--first-22c55e.svg)
+[![Part of razbiram](https://img.shields.io/badge/razbiram-ecosystem-eab308.svg)](https://github.com/leonkoellerwirth-arch/razbiram-nlp)
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/img/hero-dark.png" />
+    <img
+      alt="razbiram-listen: a synced karaoke reader showing Bulgarian sentences with the current word highlighted, an English translation under each line, a chapter spine on the left, and a persistent audio player."
+      src="docs/img/hero-light.png" width="840" />
+  </picture>
+</p>
+<p align="center">
+  <em>Drop an audio file → read it word by word, synced to the audio. The current word
+  glows, each line carries its translation, and one click collects a vocabulary card.</em>
+</p>
+
 Bring your own audio (a podcast, an audiobook, your own recording); razbiram-listen
 transcribes it locally with Whisper, aligns every word to the audio, and plays it
 back in a synced **Karaoke reading view**: the current word highlighted, one click
@@ -9,9 +28,6 @@ to seed a vocabulary card. That core runs on its own. Install the optional
 [razbiram-nlp](https://github.com/leonkoellerwirth-arch/razbiram-nlp) plugin
 (`pip install "razbiram-listen[enrich]"`) and it lights up with **glosses, lemma,
 part of speech, and heuristic CEFR bands** — the two tools simply help each other.
-
-<!-- M7: animated GIF of the Karaoke view (light + dark) goes here — the feature sells visually or not at all. -->
-![Karaoke view — coming in M7](docs/img/karaoke-placeholder.png)
 
 ## Why BYO-audio
 

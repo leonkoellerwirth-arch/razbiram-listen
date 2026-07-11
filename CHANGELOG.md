@@ -21,6 +21,19 @@ SemVer. The `.listen.json` document shape is versioned separately via
   `DELETE /jobs/<id>` cancels cooperatively (a running job aborts at its next
   progress step, the aborted upload is discarded). Net-free tested.
 
+### Changed
+- **Viewer UI is now English.** All in-app chrome — the library/queue drawer,
+  status notes, progress labels, tooltips, empty states and error messages — was
+  relabelled from German to English, so the studio matches the English-first
+  default and reads for an international audience. No behaviour change; the queue
+  unit test was updated to the new labels.
+
+### Docs
+- **README hero.** Real **light + dark** screenshots of the karaoke reader (they
+  auto-switch to the visitor's GitHub theme via `<picture>`) replace the missing
+  placeholder image, captured from the clean English demo entry. Added a badge row
+  (CI · MIT · Python 3.11+ · privacy: local-first · razbiram ecosystem).
+
 ## [0.4.0] — 2026-07-11
 
 Translation becomes a switchable layer, not a one-shot choice at drop time.
