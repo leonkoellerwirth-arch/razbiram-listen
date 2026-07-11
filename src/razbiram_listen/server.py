@@ -23,8 +23,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
-from . import enrichment
+from . import enrichment, library
+from .jobs import JobManager
 from .pipeline import process_audio
+
+# Read/write large files (uploads, audio) in 1 MiB chunks — never load a multi-GB
+# body into memory.
+_CHUNK = 1 << 20
 
 _CTYPES = {
     ".html": "text/html; charset=utf-8",
@@ -69,6 +74,7 @@ def pick_gloss_model(models: list[str]) -> str | None:
 
 class _Handler(BaseHTTPRequestHandler):
     dist: Path
+    jobs: JobManager
 
     def log_message(self, *_args: object) -> None:  # keep the console clean
         pass
@@ -85,13 +91,58 @@ class _Handler(BaseHTTPRequestHandler):
                     "enrichAvailable": enrichment.is_available() and bool(models),
                     "glossModels": models,
                     "defaultGlossModel": pick_gloss_model(models),
+                    "workers": self.jobs.workers,
                 }
             )
             return
+        if path == "/jobs":
+            self._json({"jobs": self.jobs.snapshot()})
+            return
+        if path == "/library":
+            self._json({"entries": library.list_entries()})
+            return
+        parts = [p for p in path.split("/") if p]
+        if len(parts) == 3 and parts[0] == "library":
+            entry_id, what = parts[1], parts[2]
+            if what == "result":
+                self._serve_result(entry_id)
+                return
+            if what == "audio":
+                self._serve_audio(entry_id)
+                return
         self._static(path)
+
+    def do_HEAD(self) -> None:
+        # Browsers may probe the audio with a HEAD before ranged GETs.
+        parts = [p for p in urlparse(self.path).path.split("/") if p]
+        if len(parts) == 3 and parts[0] == "library" and parts[2] == "audio":
+            self._serve_audio(parts[1])
+            return
+        self.send_error(404)
+
+    def do_DELETE(self) -> None:
+        parts = [p for p in urlparse(self.path).path.split("/") if p]
+        if len(parts) >= 2 and parts[0] == "library":
+            entry_id = parts[1]
+            if not library.is_valid_id(entry_id):
+                self.send_error(404)
+                return
+            if len(parts) == 2:  # delete the whole entry
+                ok = library.delete(entry_id)
+            elif len(parts) == 3 and parts[2] == "audio":  # reclaim space, keep transcript
+                ok = library.delete_audio(entry_id)
+            else:
+                self.send_error(404)
+                return
+            self._json({"ok": ok}, status=200 if ok else 404)
+            return
+        self.send_error(404)
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
+        if parsed.path == "/jobs":
+            self._submit_job(parsed)
+            return
         if parsed.path != "/process":
             self.send_error(404)
             return
@@ -154,6 +205,112 @@ class _Handler(BaseHTTPRequestHandler):
             except OSError:
                 pass
 
+    # --- jobs & library -------------------------------------------------------
+
+    def _submit_job(self, parsed: object) -> None:
+        query = parse_qs(getattr(parsed, "query", ""))
+        enrich_param = query.get("enrich", ["0"])[0] in ("1", "true", "yes", "on")
+        gloss = (query.get("gloss", [None])[0]) or None
+        if gloss in ("none", ""):
+            gloss = None
+        want_enrich = enrich_param or gloss is not None
+        model = query.get("model", [None])[0] or None
+        filename = self.headers.get("X-Filename", "audio")
+        length = int(self.headers.get("Content-Length", "0"))
+
+        if want_enrich and not enrichment.is_available():
+            self._json(
+                {
+                    "error": "enrich_unavailable",
+                    "message": "Übersetzung/CEFR brauchen das razbiram-nlp-Plugin "
+                    "(pip install razbiram-listen[enrich]).",
+                },
+                status=409,
+            )
+            return
+
+        def write_audio(path: Path) -> None:
+            left = length
+            with open(path, "wb") as fh:
+                while left > 0:
+                    chunk = self.rfile.read(min(_CHUNK, left))
+                    if not chunk:
+                        break
+                    fh.write(chunk)
+                    left -= len(chunk)
+
+        job_id = self.jobs.submit(
+            filename=filename,
+            enrich=want_enrich,
+            gloss=gloss,
+            model=model,
+            write_audio=write_audio,
+        )
+        self._json({"jobId": job_id})
+
+    def _serve_result(self, entry_id: str) -> None:
+        text = library.read_result(entry_id)
+        if text is None:
+            self.send_error(404)
+            return
+        body = text.encode("utf-8")
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _serve_audio(self, entry_id: str) -> None:
+        path = library.audio_path(entry_id)
+        if path is None:
+            self.send_error(404)
+            return
+        self._serve_file_range(path)
+
+    def _serve_file_range(self, path: Path) -> None:
+        """Serve a file with HTTP Range support so <audio> can seek in large files."""
+        size = path.stat().st_size
+        ctype = _CTYPES.get(path.suffix.lower(), "application/octet-stream")
+        start, end, status = 0, size - 1, 200
+        header = self.headers.get("Range")
+        if header and header.startswith("bytes=") and size > 0:
+            spec = header[len("bytes=") :].split(",")[0].strip()
+            lo, _, hi = spec.partition("-")
+            try:
+                if lo == "":  # suffix range: bytes=-N (last N bytes)
+                    start, end = max(0, size - int(hi)), size - 1
+                else:
+                    start, end = int(lo), (int(hi) if hi else size - 1)
+            except ValueError:
+                start, end = 0, size - 1
+            if start > end or start >= size:
+                self.send_response(416)
+                self.send_header("Content-Range", f"bytes */{size}")
+                self.end_headers()
+                return
+            end = min(end, size - 1)
+            status = 206
+
+        length = end - start + 1
+        self.send_response(status)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Accept-Ranges", "bytes")
+        self.send_header("Content-Length", str(length))
+        if status == 206:
+            self.send_header("Content-Range", f"bytes {start}-{end}/{size}")
+        self.end_headers()
+        if self.command == "HEAD":
+            return
+        with open(path, "rb") as fh:
+            fh.seek(start)
+            left = length
+            while left > 0:
+                chunk = fh.read(min(_CHUNK, left))
+                if not chunk:
+                    break
+                self.wfile.write(chunk)
+                left -= len(chunk)
+
     # --- static viewer --------------------------------------------------------
 
     def _static(self, path: str) -> None:
@@ -170,10 +327,10 @@ class _Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
-    def _json(self, obj: dict[str, object]) -> None:
-        body = json.dumps(obj).encode("utf-8")
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
+    def _json(self, obj: dict[str, object], status: int = 200) -> None:
+        body = json.dumps(obj, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -184,10 +341,16 @@ def serve(*, host: str = "127.0.0.1", port: int = 7332, open_browser: bool = Tru
     dist = _viewer_dist()
     if dist is None:
         raise RuntimeError("The viewer isn't built yet. Run:  cd viewer && npm ci && npm run build")
+    manager = JobManager()
+    manager.start()
     _Handler.dist = dist
+    _Handler.jobs = manager
     httpd = ThreadingHTTPServer((host, port), _Handler)
     url = f"http://{host}:{port}/"
-    print(f"razbiram-listen studio → {url}  (Ctrl+C to stop)")
+    print(
+        f"razbiram-listen studio → {url}  "
+        f"({manager.workers} worker(s), library: {library.home()})  (Ctrl+C to stop)"
+    )
     if open_browser:
         try:
             webbrowser.open(url)
