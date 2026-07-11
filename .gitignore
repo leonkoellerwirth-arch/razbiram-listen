@@ -37,5 +37,8 @@ examples/_demo/
 .env
 .env.local
 
+# Local Claude Code settings (machine-specific); skills under .claude/skills/ ARE tracked
+.claude/settings.local.json
+
 # OS
 .DS_Store
