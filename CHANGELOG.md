@@ -6,6 +6,21 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+### Added
+- **Reader redesign for long content (three-zone shell).** The studio is now a
+  fixed `topbar / content / player` shell that never scrolls away: a left **spine**
+  (transcript search · time-based jump marks · a position rail), a centre **reading
+  spotlight** (the active sentence is full-opacity and larger, neighbours dim by
+  distance, auto-centred), a **persistent player bar** (play · time · scrubber ·
+  loop · tempo), **one** unified language control (EN/DE/off) replacing the two old
+  pickers, and the queue/library moved into a **slide-over drawer** so the reader
+  gets full width. Thousands of sentences stay smooth via `content-visibility`.
+  Keeps the razbiram.com theme verbatim (tokens, fonts, the existing `--band-*`
+  CEFR badge colours). Design direction by a Fable-5 pass, owner-approved.
+- **Cancel a running or queued job** — active jobs in the queue get a ✕;
+  `DELETE /jobs/<id>` cancels cooperatively (a running job aborts at its next
+  progress step, the aborted upload is discarded). Net-free tested.
+
 ## [0.4.0] — 2026-07-11
 
 Translation becomes a switchable layer, not a one-shot choice at drop time.

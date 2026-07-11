@@ -6,11 +6,22 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ## ▶ Resume here (current state)
 
-**Released v0.1.0 → v0.2.0 (nlp optional plugin) → v0.3.0 (queue + local library).
-Now v0.4.0 — translation as a switchable layer (default English; re-translate a
-saved entry to DE/EN with no re-transcription) — built & verified (backend + real
-Ollama via curl; viewer builds), committed on `main`.** Gate green. **Open step:
-owner's browser check of the language-switch UI, then cut the v0.4.0 tag + release.**
+**Released v0.1.0 → v0.3.0. Since then, committed on `main` but NOT yet tagged
+(pending owner's visual approval): v0.4.0 (translate as a switchable layer) and the
+big reader **redesign** + job **cancel**.** Gate green; studio server stopped.
+
+- **Redesign (BIBLE D10):** flat list → fixed **three-zone shell** (topbar / content
+  [spine + spotlight reader] / persistent player), slide-over library drawer, ONE
+  EN/DE/off language control, `content-visibility` virtualization — built for films.
+  Razbiram.com theme kept verbatim. Direction from a Fable-5 pass, built by a fork,
+  gate-green, **served live for the owner to review** (he was mid-review).
+- **Cancel:** active jobs get a ✕; `DELETE /jobs/<id>` aborts cooperatively (running
+  job stops at its next progress step; aborted upload discarded). Verified end-to-end.
+- **⚠ CEFR colours:** the docs say green→red but the real `--band-*` tokens are
+  blue/purple/amber — **keep the tokens** (Studio wins; D10). Don't "correct" them.
+- **Open / next:** owner reviews the redesign live (`razbiram-listen studio`), tweaks
+  (spotlight dim strength? spine collapsible? bookmarks?), **then cut v0.4.0 + v0.5.0
+  tags/releases**. After that: M7 (own example audio + transcript-edit mode).
 
 - **What changed (0.3.0, BIBLE D8):** large audio runs as a **background job**
   (studio `POST /jobs` → bounded worker pool, default 2, `RAZBIRAM_LISTEN_WORKERS`),
@@ -39,6 +50,41 @@ owner's browser check of the language-switch UI, then cut the v0.4.0 tag + relea
   serves it from the repo layout today); ask the hub to ship a JSON Schema +
   `schemaVersion` (would replace listen's hand-kept `contract.py`); "process another
   file" reset in studio.
+
+---
+
+## 2026-07-12 — Session 5 — Reader redesign (three-zone shell) + job cancel
+
+**Done (gate-green, on `main`, untagged):**
+- **Reader redesign** for long content: `topbar / content[spine + spotlight reader] /
+  persistent player` shell, slide-over library drawer, unified EN/DE/off language
+  control, `content-visibility` virtualization. Direction from a **Fable-5** design
+  pass (mockup approved), implemented by a fork; razbiram.com theme kept verbatim.
+  Files: `viewer/index.html`, `styles.css`, `karaoke.ts` (spotlight + `renderReaderMeta`
+  + `filter`), `main.ts` (spine/drawer/scrubber/unified lang), `queue.ts`. Served live
+  for owner review.
+- **Cancel running/queued jobs**: `jobs.py` cooperative cancel (`cancel()`,
+  `JobCancelled`, checks in progress callbacks; aborted process job discarded),
+  `DELETE /jobs/<id>`, ✕ on active jobs. Net-free tested (running/queued/unknown) +
+  verified via the live endpoint (job → cancelled, upload discarded).
+
+**Decided:** BIBLE **D10** (redesign + keep razbiram.com theme; **`--band-*` CEFR
+tokens are authoritative, not the green→red doc list** — Studio wins).
+
+**Open / blocked:**
+- Owner's **visual approval of the redesign** (he asked for cancel mid-review). Then
+  tweak (spotlight dim strength / spine collapsible / bookmarks?) and cut releases.
+- **v0.4.0 (translate) + v0.5.0 (redesign+cancel) tags/releases are PENDING** — code
+  is on `main`, gate green, but not tagged. `pyproject` version still `0.4.0`.
+- Cancel latency: responsive during transcribe + gloss; a few-second gap during the
+  classla morphology-load window (no callbacks there) — acceptable, note only.
+
+**Next:** owner reviews redesign → cut v0.4.0 + v0.5.0 → **M7** (own recorded example
+under `examples/sample-audio/`, GIF, transcript-edit mode, fresh-clone acceptance).
+
+**Continuity warnings:** §8/D6 no scraping · consume hub contract (D7 copy CI-guarded)
+· local-first · **CEFR badges use `--band-*`, don't recolour to green→red (D10)** ·
+Alignment Golden-Set stays green.
 
 ---
 

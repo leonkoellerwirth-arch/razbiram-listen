@@ -84,6 +84,20 @@ shared `EnrichedDocument` contract, extended with audio timings.
   "translate" job (`POST /library/<id>/translate`); the entry remembers `meta.langs`.
   This refines the earlier "enrichment default off" stance (D7 era) per the owner.
 
+- **D10 — Reader redesign for long content; keep the razbiram.com theme.**
+  Owner-approved (2026-07-12, "ja mach genauso, behalte aber das razbiram.com
+  CSS-Theme"). The flat sentence list is replaced by a fixed **three-zone shell**
+  (topbar / content[spine + spotlight reader] / persistent player) with a slide-over
+  library drawer, unified EN/DE/off language control, and `content-visibility`
+  virtualization — built for films (hundreds/thousands of sentences). Design
+  direction came from a Fable-5 pass; the razbiram.com identity is kept verbatim.
+  **CEFR clarification:** the binding *nominal* scale in ECOSYSTEM §4 / CLAUDE.md #3
+  is green→red, but the actual family tokens adopted verbatim (`--band-*-bg/-fg` in
+  `styles.css`) use a blue/purple/amber badge palette; ECOSYSTEM §4 says *"Studio ist
+  maßgeblich"* (Studio wins), and the owner said keep the razbiram.com theme — so
+  **the `--band-*` tokens are authoritative; do not "correct" them to green→red.**
+  Cancelling a running/queued job (`DELETE /jobs/<id>`, cooperative) extends D8.
+
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
   on `EnrichedDocument` (currently neither exists). This would replace listen's
