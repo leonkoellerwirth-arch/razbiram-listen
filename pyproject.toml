@@ -12,9 +12,8 @@ license = { text = "MIT" }
 authors = [{ name = "Leon Köllerwirth Hlihel" }]
 keywords = ["bulgarian", "language-learning", "whisper", "transcription", "cefr", "razbiram"]
 dependencies = [
-    # The shared EnrichedDocument contract is imported from the hub, never forked
-    # (ECOSYSTEM §3). Pinned to a tag for reproducibility.
-    "razbiram-nlp @ git+https://github.com/leonkoellerwirth-arch/razbiram-nlp@v0.1.0",
+    # Core: transcribe → align → karaoke. No razbiram-nlp here — it is an optional
+    # enrichment plugin (see the 'enrich' extra); the core runs without it.
     "faster-whisper>=1.0",
     "pydantic>=2.6",
     "click>=8.1",
@@ -22,6 +21,12 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# The razbiram-nlp enrichment plugin: adds glosses/CEFR/morphology when installed
+# (ECOSYSTEM §3). `pip install razbiram-listen[enrich]`. The shared EnrichedDocument
+# contract is consumed from the hub, never forked; listen keeps a shape-compatible
+# copy (src/razbiram_listen/contract.py) so the core builds documents without it.
+# Pinned to a tag for reproducibility.
+enrich = ["razbiram-nlp @ git+https://github.com/leonkoellerwirth-arch/razbiram-nlp@v0.1.0"]
 dev = ["ruff>=0.5", "pytest>=8.0"]
 
 [project.scripts]

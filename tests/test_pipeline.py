@@ -1,9 +1,9 @@
 """Tests for the end-to-end pipeline (M4).
 
 Unit tests inject fake transcribe/enrich seams so the orchestration is verified
-with no Whisper model and no network. One ``slow`` test runs the real pipeline
-(real Whisper ``tiny`` + the hub's real segmentation stage — no heavy morphology
-model) end to end.
+with no Whisper model and no network. Core mode (no razbiram-nlp) is exercised
+directly; one ``slow`` test runs the real pipeline (real Whisper ``tiny`` + the
+hub's real segmentation stage) end to end when the plugin is installed.
 """
 
 from __future__ import annotations
@@ -15,10 +15,9 @@ import wave
 from pathlib import Path
 
 import pytest
-from razbiram_nlp import EnrichedDocument
-from razbiram_nlp.models import Sentence, Token
 
 from razbiram_listen import SCHEMA_VERSION, ListenDocument
+from razbiram_listen.contract import EnrichedDocument, Sentence, Token
 from razbiram_listen.pipeline import process_audio
 from razbiram_listen.transcribe import TranscribedSegment, TranscribedWord, Transcription
 
@@ -46,7 +45,9 @@ def _canned_transcription() -> Transcription:
     )
 
 
-def _fake_enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
+def _fake_enrich(
+    text: str, *, gloss_lang: str | None, gloss_model: str | None = None
+) -> EnrichedDocument:
     # Tokens consistent with the canned transcription so alignment matches 3/3.
     toks = [
         Token(text="Аз", kind="word", start=0, end=2),
@@ -58,33 +59,35 @@ def _fake_enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
     return EnrichedDocument(text=text, lang="bg", stages=["segmentation"], sentences=[sent])
 
 
-def test_process_audio_assembles_a_listen_document() -> None:
+# --- Core mode: no razbiram-nlp, document built straight from Whisper ---------
+
+
+def test_core_mode_needs_no_enrichment() -> None:
     result = process_audio(
         "episode.mp3",
-        gloss_lang=None,
         transcriber=FakeTranscriber(_canned_transcription()),
-        enrich=_fake_enrich,
         show_progress=False,
     )
     doc = result.document
     assert isinstance(doc, ListenDocument)
+    assert result.enriched is False
     assert doc.text == "Аз съм тук."
-    assert doc.schema_version == SCHEMA_VERSION
-    # audioRef references the file by name only — never the audio itself.
-    assert doc.audio_ref is not None
-    assert doc.audio_ref.filename == "episode.mp3"
-    assert doc.audio_ref.duration_s == pytest.approx(1.1)
-    # Timings were aligned onto every word token.
+    # Whisper-derived tokens: three words + one punctuation.
+    assert [t.text for t in doc.sentences[0].tokens] == ["Аз", "съм", "тук", "."]
+    assert [t.kind for t in doc.sentences[0].tokens] == ["word", "word", "word", "punct"]
+    # Every word token aligned to a Whisper timing.
     assert doc.timings is not None
     assert len(doc.timings.tokens) == 3
     assert result.stats.coverage == pytest.approx(1.0)
+    # No enrichment ran → no glosses/CEFR.
+    assert doc.sentences[0].gloss is None
+    assert doc.difficulty is None
 
 
-def test_process_audio_output_is_valid_listen_json() -> None:
+def test_core_mode_output_is_valid_listen_json() -> None:
     result = process_audio(
         "лекция.mp3",
         transcriber=FakeTranscriber(_canned_transcription()),
-        enrich=_fake_enrich,
         show_progress=False,
     )
     payload = json.loads(result.document.to_json())
@@ -93,27 +96,59 @@ def test_process_audio_output_is_valid_listen_json() -> None:
     assert payload["timings"]["tokens"][0]["source"] == "word"
 
 
-def test_gloss_lang_is_passed_through_to_enrich() -> None:
-    seen: dict[str, str | None] = {}
+# --- Enriched mode: the razbiram-nlp plugin fills glosses/CEFR (injected here) -
 
-    def spy_enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
-        seen["gloss_lang"] = gloss_lang
-        return _fake_enrich(text, gloss_lang=gloss_lang)
 
-    process_audio(
-        "a.mp3",
-        gloss_lang="de",
+def test_enriched_mode_assembles_a_listen_document() -> None:
+    result = process_audio(
+        "episode.mp3",
+        enrich=True,
         transcriber=FakeTranscriber(_canned_transcription()),
-        enrich=spy_enrich,
+        enrich_fn=_fake_enrich,
         show_progress=False,
     )
+    doc = result.document
+    assert isinstance(doc, ListenDocument)
+    assert result.enriched is True
+    assert doc.text == "Аз съм тук."
+    assert doc.schema_version == SCHEMA_VERSION
+    # audioRef references the file by name only — never the audio itself.
+    assert doc.audio_ref is not None
+    assert doc.audio_ref.filename == "episode.mp3"
+    assert doc.audio_ref.duration_s == pytest.approx(1.1)
+    assert doc.timings is not None
+    assert len(doc.timings.tokens) == 3
+    assert result.stats.coverage == pytest.approx(1.0)
+
+
+def test_gloss_lang_implies_enrichment_and_is_passed_through() -> None:
+    seen: dict[str, str | None] = {}
+
+    def spy_enrich(
+        text: str, *, gloss_lang: str | None, gloss_model: str | None = None
+    ) -> EnrichedDocument:
+        seen["gloss_lang"] = gloss_lang
+        seen["gloss_model"] = gloss_model
+        return _fake_enrich(text, gloss_lang=gloss_lang)
+
+    result = process_audio(
+        "a.mp3",
+        gloss_lang="de",
+        gloss_model="aya-expanse:8b",
+        transcriber=FakeTranscriber(_canned_transcription()),
+        enrich_fn=spy_enrich,
+        show_progress=False,
+    )
+    # A gloss language implies enrichment even without enrich=True.
+    assert result.enriched is True
     assert seen["gloss_lang"] == "de"
+    assert seen["gloss_model"] == "aya-expanse:8b"
 
 
 def test_available_stages_reflects_environment() -> None:
     from importlib.util import find_spec
 
-    from razbiram_listen.pipeline import _available_stages
+    from razbiram_listen.enrichment import _available_stages
 
     base = _available_stages(None)
     assert {"segmentation", "difficulty", "vocab"} <= base
@@ -135,23 +170,37 @@ def _write_tone_wav(path: Path, *, seconds: float = 1.0, rate: int = 16000) -> N
 
 
 @pytest.mark.slow
-def test_real_end_to_end_pipeline(tmp_path: Path) -> None:
-    # Real Whisper tiny + the hub's real segmentation stage (light; no classla).
-    from functools import partial
+def test_real_end_to_end_core_pipeline(tmp_path: Path) -> None:
+    # Real Whisper tiny, core mode — no plugin needed.
+    audio = tmp_path / "tone.wav"
+    _write_tone_wav(audio)
+    result = process_audio(audio, model_size="tiny", show_progress=False)
+    assert isinstance(result.document, ListenDocument)
+    assert result.enriched is False
+    # The output is always a valid .listen.json, even for near-empty audio.
+    json.loads(result.document.to_json())
+    assert result.document.audio_ref is not None
+    assert result.document.audio_ref.filename == "tone.wav"
 
+
+@pytest.mark.slow
+def test_real_end_to_end_enriched_pipeline(tmp_path: Path) -> None:
+    # Real Whisper tiny + the hub's real segmentation stage (light; no classla).
+    pytest.importorskip("razbiram_nlp")
     from razbiram_nlp import enrich_text
+
+    def enrich_seg_only(text: str, *, gloss_lang: str | None, gloss_model: str | None = None):
+        return enrich_text(text, gloss_lang=None, stages={"segmentation"})
 
     audio = tmp_path / "tone.wav"
     _write_tone_wav(audio)
     result = process_audio(
         audio,
-        gloss_lang=None,
+        enrich=True,
         model_size="tiny",
-        enrich=partial(enrich_text, stages={"segmentation"}),
+        enrich_fn=enrich_seg_only,
         show_progress=False,
     )
     assert isinstance(result.document, ListenDocument)
-    # The output is always a valid .listen.json, even for near-empty audio.
+    assert result.enriched is True
     json.loads(result.document.to_json())
-    assert result.document.audio_ref is not None
-    assert result.document.audio_ref.filename == "tone.wav"

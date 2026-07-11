@@ -1,19 +1,22 @@
-"""Pipeline orchestration (M4): audio → transcript → enrichment → alignment → doc.
+"""Pipeline orchestration (M4): audio → transcript → (enrichment) → alignment → doc.
 
 ``process_audio`` is the end-to-end entry point behind the ``process`` CLI
-command. It wires the three stages together and wraps the result as a
-:class:`~razbiram_listen.models.ListenDocument` (an ``EnrichedDocument`` + audio
-timings), ready to serialise as ``.listen.json``.
+command. It always transcribes and aligns; **enrichment is optional** (ECOSYSTEM
+§3 / this repo's plugin model):
 
-Reuse, not reinvention (ECOSYSTEM §3): enrichment is delegated to the razbiram-nlp
-hub's ``enrich_text``; only transcription (M2) and alignment (M3) are ours.
+- **Core mode (default):** transcribe → build a document straight from Whisper
+  (:func:`~razbiram_listen.segment.build_core_document`) → align. No razbiram-nlp
+  needed; the karaoke viewer plays the synced transcript immediately.
+- **Enriched mode (opt-in):** when ``enrich=True`` (or a ``gloss_lang`` is given)
+  the razbiram-nlp plugin adds glosses/CEFR/morphology
+  (:mod:`razbiram_listen.enrichment`) before alignment.
 
 Testability
 -----------
-The two heavy collaborators are injectable: pass a ``transcriber`` (a Whisper
-model fake) and/or an ``enrich`` callable to unit-test the orchestration with no
-model and no network. When omitted, the real Whisper wrapper and the real
-``razbiram_nlp.enrich_text`` are built lazily.
+The heavy collaborators are injectable: pass a ``transcriber`` (a Whisper model
+fake) and/or an ``enrich_fn`` to unit-test the orchestration with no model and no
+network. When omitted, the real Whisper wrapper and the real razbiram-nlp plugin
+are used lazily.
 """
 
 from __future__ import annotations
@@ -22,13 +25,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 
-from razbiram_nlp import EnrichedDocument
-
+from . import enrichment
 from .align import AlignmentStats, align
+from .contract import EnrichedDocument
 from .models import AudioRef, ListenDocument
+from .segment import build_core_document
 from .transcribe import DEFAULT_MODEL, Transcriber, Transcription
 
-# The enrichment seam: text (+ gloss language) -> EnrichedDocument.
+# The enrichment seam: text (+ gloss language/model) -> EnrichedDocument.
 EnrichFn = Callable[..., EnrichedDocument]
 
 
@@ -40,6 +44,7 @@ class ProcessResult:
     stats: AlignmentStats
     language: str
     duration: float
+    enriched: bool
 
 
 def process_audio(
@@ -47,14 +52,15 @@ def process_audio(
     *,
     gloss_lang: str | None = None,
     gloss_model: str | None = None,
+    enrich: bool = False,
     model_size: str = DEFAULT_MODEL,
     language: str = "bg",
     transcriber: Transcriber | None = None,
-    enrich: EnrichFn | None = None,
+    enrich_fn: EnrichFn | None = None,
     show_progress: bool = True,
     on_event: Callable[[str, float | None], None] | None = None,
 ) -> ProcessResult:
-    """Run the full pipeline on one local audio file.
+    """Run the pipeline on one local audio file.
 
     Parameters
     ----------
@@ -62,17 +68,26 @@ def process_audio(
         Path to a local audio file (BYO-audio; never uploaded).
     gloss_lang:
         Gloss target language (``"de"``/``"en"``) or ``None`` for no glosses.
+        Passing a language implies ``enrich=True``.
     gloss_model:
         Local Ollama model for glossing (e.g. ``"aya-expanse:8b"``); ``None`` uses
-        the hub default. Only used when ``gloss_lang`` is set and no ``enrich`` is
-        injected.
+        the hub default. Only used when enriching and no ``enrich_fn`` is injected.
+    enrich:
+        Opt in to razbiram-nlp enrichment (glosses/CEFR/morphology). Off by
+        default: the core produces a synced transcript with no plugin installed.
     model_size:
         Whisper model when no ``transcriber`` is injected.
-    transcriber, enrich:
-        Injectable seams for testing; real ones are built lazily when omitted.
+    transcriber, enrich_fn:
+        Injectable seams for testing; real ones are used lazily when omitted.
+
+    Raises
+    ------
+    razbiram_listen.enrichment.EnrichmentUnavailable
+        If enrichment is requested but razbiram-nlp is not installed and no
+        ``enrich_fn`` is injected. Callers should check
+        :func:`razbiram_listen.enrichment.is_available` first.
     """
     transcriber = transcriber or Transcriber(model_size)
-    enrich = enrich or _make_enrich(gloss_model)
 
     def emit(stage: str, fraction: float | None) -> None:
         if on_event:
@@ -83,8 +98,15 @@ def process_audio(
     transcription: Transcription = transcriber.transcribe(
         audio, language=language, show_progress=show_progress, on_progress=on_progress
     )
-    emit("enrich", None)
-    doc = enrich(transcription.text, gloss_lang=gloss_lang)
+
+    want_enrich = enrich or gloss_lang is not None
+    if want_enrich:
+        emit("enrich", None)
+        do_enrich = enrich_fn or enrichment.enrich_document
+        doc = do_enrich(transcription.text, gloss_lang=gloss_lang, gloss_model=gloss_model)
+    else:
+        doc = build_core_document(transcription)
+
     emit("align", None)
     alignment = align(doc, transcription)
     emit("done", 1.0)
@@ -96,53 +118,5 @@ def process_audio(
         stats=alignment.stats,
         language=transcription.language,
         duration=transcription.duration,
+        enriched=want_enrich,
     )
-
-
-def _make_enrich(gloss_model: str | None) -> EnrichFn:
-    """Build the default enrich function, bound to a chosen local gloss model."""
-
-    def _enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
-        return _default_enrich(text, gloss_lang=gloss_lang, gloss_model=gloss_model)
-
-    return _enrich
-
-
-def _default_enrich(
-    text: str, *, gloss_lang: str | None, gloss_model: str | None = None
-) -> EnrichedDocument:
-    """Delegate to the hub, selecting the stages the local install can actually run.
-
-    Morphology needs the optional ``classla`` extra; difficulty/vocab need the hub's
-    ``data/``+``config/`` (set ``RAZBIRAM_NLP_DATA_DIR``/``RAZBIRAM_NLP_CONFIG_DIR``
-    or install a hub checkout). Missing pieces degrade gracefully rather than crash.
-    Imported lazily so plain imports stay light.
-    """
-    from razbiram_nlp import enrich_text
-
-    provider = None
-    if gloss_lang is not None and gloss_model:
-        from razbiram_nlp.gloss import OllamaGlossProvider
-
-        provider = OllamaGlossProvider(model=gloss_model)
-
-    stages = _available_stages(gloss_lang)
-    try:
-        return enrich_text(text, gloss_lang=gloss_lang, stages=stages, gloss_provider=provider)
-    except FileNotFoundError:
-        # The hub's difficulty/vocab resources aren't available in a bare install;
-        # degrade to segmentation (+ morphology) + gloss (sentence glosses survive).
-        reduced = stages - {"difficulty", "vocab"}
-        return enrich_text(text, gloss_lang=gloss_lang, stages=reduced, gloss_provider=provider)
-
-
-def _available_stages(gloss_lang: str | None) -> set[str]:
-    """The stages this install can run: morphology only if ``classla`` is present."""
-    from importlib.util import find_spec
-
-    stages = {"segmentation", "difficulty", "vocab"}
-    if find_spec("classla") is not None:
-        stages.add("morphology")
-    if gloss_lang is not None:
-        stages.add("gloss")
-    return stages

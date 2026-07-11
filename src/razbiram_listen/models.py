@@ -1,9 +1,11 @@
 """ListenDocument — the audio-aware extension of the EnrichedDocument contract.
 
-razbiram-listen does not fork the shared contract. It imports ``EnrichedDocument``
-from the razbiram-nlp hub (ECOSYSTEM §3) and extends it *only* through the
-optional fields the ecosystem reserves for this purpose (``timings``,
-``audioRef``) plus the mandatory ``schemaVersion`` (ECOSYSTEM §2).
+razbiram-listen extends the shared contract *only* through the optional fields the
+ecosystem reserves for this purpose (``timings``, ``audioRef``) plus the mandatory
+``schemaVersion`` (ECOSYSTEM §2). The base ``EnrichedDocument`` comes from
+:mod:`razbiram_listen.contract` — a shape-compatible mirror of the razbiram-nlp
+hub contract, kept in lock-step so the core runs without the hub (which is an
+optional enrichment plugin); a compatibility test guards against drift.
 
 The emitted ``.listen.json`` is therefore a superset of an EnrichedDocument:
 every consumer that reads EnrichedDocument (razbiram-anki, the Studio) can read
@@ -28,7 +30,8 @@ import json
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
-from razbiram_nlp import EnrichedDocument
+
+from .contract import EnrichedDocument
 
 # SemVer of the .listen.json shape. Bump on any breaking change and record it in
 # CHANGELOG.md (ECOSYSTEM §2).

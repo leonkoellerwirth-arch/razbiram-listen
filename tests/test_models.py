@@ -11,8 +11,6 @@ import json
 
 import pytest
 from pydantic import ValidationError
-from razbiram_nlp import EnrichedDocument
-from razbiram_nlp.models import Sentence, Token
 
 from razbiram_listen import (
     SCHEMA_VERSION,
@@ -22,6 +20,7 @@ from razbiram_listen import (
     SegmentTiming,
     TokenTiming,
 )
+from razbiram_listen.contract import EnrichedDocument, Sentence, Token
 
 
 def _tiny_enriched() -> EnrichedDocument:

@@ -37,8 +37,7 @@ import re
 from collections import defaultdict
 from dataclasses import dataclass
 
-from razbiram_nlp import EnrichedDocument
-
+from .contract import EnrichedDocument
 from .models import ListenTimings, SegmentTiming, TokenTiming
 from .transcribe import TranscribedWord, Transcription
 

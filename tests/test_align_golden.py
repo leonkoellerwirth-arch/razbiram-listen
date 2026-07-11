@@ -15,10 +15,9 @@ from pathlib import Path
 from typing import Any
 
 import pytest
-from razbiram_nlp import EnrichedDocument
-from razbiram_nlp.models import Sentence, Token
 
 from razbiram_listen.align import align
+from razbiram_listen.contract import EnrichedDocument, Sentence, Token
 from razbiram_listen.transcribe import TranscribedSegment, TranscribedWord, Transcription
 
 GOLDEN_DIR = Path(__file__).parent / "golden"
