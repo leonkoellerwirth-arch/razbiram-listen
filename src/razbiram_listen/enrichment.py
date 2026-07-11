@@ -86,8 +86,13 @@ def _gloss_with_progress(
     gloss_lang: str,
     gloss_model: str | None,
     on_progress: ProgressFn | None,
+    provider=None,
 ) -> None:
-    """Apply glosses to ``doc`` in place via the hub, reporting per-call progress."""
+    """Apply glosses to ``doc`` in place via the hub, reporting per-call progress.
+
+    ``provider`` overrides the gloss provider (injected in tests); by default a
+    local Ollama provider is built.
+    """
     from razbiram_nlp.cache import GlossCache
     from razbiram_nlp.gloss import (
         GlossProvider,
@@ -96,7 +101,7 @@ def _gloss_with_progress(
         plan_glosses,
     )
 
-    base: GlossProvider = (
+    base: GlossProvider = provider or (
         OllamaGlossProvider(model=gloss_model) if gloss_model else OllamaGlossProvider()
     )
     cache = GlossCache()
@@ -140,3 +145,48 @@ def _available_stages(gloss_lang: str | None) -> set[str]:
     if gloss_lang is not None:
         stages.add("gloss")
     return stages
+
+
+# Fields the listen document adds on top of the EnrichedDocument contract; they are
+# set aside during a re-gloss so the hub models validate, then re-attached untouched.
+_LISTEN_EXT_KEYS = ("schemaVersion", "audioRef", "timings")
+
+
+def retranslate(
+    document: dict,
+    *,
+    lang: str,
+    gloss_model: str | None = None,
+    on_progress: ProgressFn | None = None,
+    provider=None,
+) -> str:
+    """Re-gloss an already-processed ``.listen.json`` into ``lang``, reusing structure.
+
+    Only sentence (and per-word vocab, if present) **glosses** are recomputed —
+    morphology/CEFR/lemma are language-independent and kept, and tokens, timings,
+    ``audioRef`` and ``schemaVersion`` are preserved untouched. So switching the
+    translation language needs no re-transcription and never breaks the alignment.
+    Returns the updated ``.listen.json`` text. Raises :class:`EnrichmentUnavailable`
+    if the plugin is not installed.
+    """
+    if not is_available():
+        raise EnrichmentUnavailable(
+            "razbiram-nlp is not installed. Install the enrichment plugin with "
+            "'pip install razbiram-listen[enrich]' to translate."
+        )
+    from razbiram_nlp import EnrichedDocument as HubDocument
+
+    from .models import ListenDocument
+
+    ext = {k: document[k] for k in _LISTEN_EXT_KEYS if k in document}
+    base = {k: v for k, v in document.items() if k not in _LISTEN_EXT_KEYS}
+    hub_doc = HubDocument.model_validate(base)  # shape-compatible with the contract copy
+    _gloss_with_progress(
+        hub_doc,
+        gloss_lang=lang,
+        gloss_model=gloss_model,
+        on_progress=on_progress,
+        provider=provider,
+    )
+    merged = {**hub_doc.model_dump(), **ext}  # new glosses + preserved listen extensions
+    return ListenDocument.model_validate(merged).to_json()

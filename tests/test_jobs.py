@@ -106,6 +106,45 @@ def test_failed_job_reports_error_and_discards_reserved_entry(lib_home) -> None:
     assert library.list_entries() == []  # reserved entry cleaned up
 
 
+def test_translate_job_reglosses_existing_entry(lib_home) -> None:
+    def fake_process(audio, *, gloss_lang, gloss_model, enrich, show_progress, on_event):
+        return _FakeResult(enriched=True)
+
+    captured: dict[str, object] = {}
+
+    def fake_translate(document, *, lang, gloss_model=None, on_progress=None):
+        captured["lang"] = lang
+        on_progress(1, 2)
+        on_progress(2, 2)
+        return __import__("json").dumps({**document, "_lang": lang})
+
+    mgr = jobs.JobManager(workers=1, process=fake_process, translate=fake_translate)
+    mgr.start()
+    entry = mgr.submit(
+        filename="f.mp3",
+        enrich=True,
+        gloss="en",
+        model=None,
+        write_audio=lambda p: p.write_bytes(b"d"),
+    )
+    mgr.join()
+    assert library.read_meta(entry)["glossLang"] == "en"
+
+    # Now translate the existing entry to German — a separate job, same entry.
+    tid = mgr.submit_translate(entry, lang="de", model=None)
+    assert tid != entry
+    mgr.join()
+
+    snap = mgr.get(tid)
+    assert snap["status"] == "done"
+    assert snap["kind"] == "translate"
+    assert snap["entryId"] == entry
+    assert captured["lang"] == "de"
+    meta = library.read_meta(entry)
+    assert meta["glossLang"] == "de"
+    assert set(meta["langs"]) == {"de", "en"}  # both remembered
+
+
 def test_workers_run_in_parallel(lib_home) -> None:
     # A barrier both jobs must reach at once: with 2 workers they do; with 1 the
     # first would block until the 3s timeout and raise BrokenBarrierError.

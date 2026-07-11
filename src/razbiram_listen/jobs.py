@@ -13,20 +13,25 @@ not thrash the machine. ``process_audio`` is injectable for net-free tests.
 
 from __future__ import annotations
 
+import json
 import os
 import queue
 import threading
+import uuid
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 
-from . import library
+from . import enrichment, library
 from .pipeline import process_audio
 
 # The pipeline seam: (audio, *, gloss_lang, gloss_model, enrich, show_progress,
 # on_event) -> ProcessResult. Injected in tests.
 ProcessFn = Callable[..., object]
+
+# The re-translate seam: (document, *, lang, gloss_model, on_progress) -> json str.
+TranslateFn = Callable[..., str]
 
 # How the caller streams the (possibly multi-GB) upload to a path, in chunks.
 WriteAudioFn = Callable[[Path], None]
@@ -55,6 +60,8 @@ class Job:
     gloss: str | None
     model: str | None
     audio_path: str
+    entry_id: str  # the library entry this job produces or updates
+    kind: str = "process"  # process (audio → result) | translate (re-gloss an entry)
     status: str = "queued"  # queued | running | done | error
     stage: str | None = None
     fraction: float | None = None
@@ -64,6 +71,8 @@ class Job:
     def snapshot(self) -> dict:
         return {
             "id": self.id,
+            "entryId": self.entry_id,
+            "kind": self.kind,
             "filename": self.filename,
             "title": self.title,
             "status": self.status,
@@ -78,8 +87,15 @@ class Job:
 class JobManager:
     """Thread-safe queue + bounded worker pool; results go to the library."""
 
-    def __init__(self, *, workers: int | None = None, process: ProcessFn = process_audio) -> None:
+    def __init__(
+        self,
+        *,
+        workers: int | None = None,
+        process: ProcessFn = process_audio,
+        translate: TranslateFn = enrichment.retranslate,
+    ) -> None:
         self._process = process
+        self._translate = translate
         self._queue: queue.Queue[str] = queue.Queue()
         self._jobs: dict[str, Job] = {}
         self._lock = threading.Lock()
@@ -118,11 +134,33 @@ class JobManager:
             gloss=gloss,
             model=model,
             audio_path=str(audio_path),
+            entry_id=entry_id,
         )
         with self._lock:
             self._jobs[entry_id] = job
         self._queue.put(entry_id)
         return entry_id
+
+    def submit_translate(self, entry_id: str, *, lang: str, model: str | None) -> str:
+        """Queue a re-gloss of an existing library entry into ``lang`` (no re-transcribe)."""
+        meta = library.read_meta(entry_id) or {}
+        title = meta.get("title") or entry_id
+        job_id = uuid.uuid4().hex[:12]
+        job = Job(
+            id=job_id,
+            filename=meta.get("filename", title),
+            title=f"{title} → {lang.upper()}",
+            enrich=True,
+            gloss=lang,
+            model=model,
+            audio_path="",
+            entry_id=entry_id,
+            kind="translate",
+        )
+        with self._lock:
+            self._jobs[job_id] = job
+        self._queue.put(job_id)
+        return job_id
 
     def snapshot(self) -> list[dict]:
         """All jobs this session, newest-first (the queue panel polls this)."""
@@ -155,7 +193,12 @@ class JobManager:
                 self._run(job_id)
             except Exception as exc:  # a bad job must never kill the worker
                 self._update(job_id, status="error", error=f"{type(exc).__name__}: {exc}")
-                library.discard(job_id)  # drop the orphaned reserved audio
+                with self._lock:
+                    job = self._jobs.get(job_id)
+                # Only a failed process job leaves an orphaned reserved entry to drop;
+                # a failed translate must never touch the existing entry.
+                if job is not None and job.kind == "process":
+                    library.discard(job.entry_id)
             finally:
                 self._queue.task_done()
 
@@ -164,10 +207,16 @@ class JobManager:
             job = self._jobs.get(job_id)
         if job is None:
             return
-        self._update(job_id, status="running", stage="transcribe", fraction=0.0)
+        if job.kind == "translate":
+            self._run_translate(job)
+        else:
+            self._run_process(job)
+
+    def _run_process(self, job: Job) -> None:
+        self._update(job.id, status="running", stage="transcribe", fraction=0.0)
 
         def on_event(stage: str, fraction: float | None) -> None:
-            self._update(job_id, stage=stage, fraction=fraction)
+            self._update(job.id, stage=stage, fraction=fraction)
 
         result = self._process(
             job.audio_path,
@@ -177,14 +226,42 @@ class JobManager:
             show_progress=False,
             on_event=on_event,
         )
+        enriched = getattr(result, "enriched", job.enrich)
         meta = {
             "title": job.title,
             "filename": job.filename,
             "durationS": getattr(result, "duration", None),
-            "mode": "enriched" if getattr(result, "enriched", job.enrich) else "core",
-            "glossLang": job.gloss if job.enrich else None,
+            "mode": "enriched" if enriched else "core",
+            "glossLang": job.gloss if enriched else None,
+            "langs": [job.gloss] if (enriched and job.gloss) else [],
             "coverage": getattr(getattr(result, "stats", None), "coverage", None),
             "createdAt": job.created_at,
         }
-        library.save_result(job_id, result.document.to_json(), meta)
-        self._update(job_id, status="done", stage="done", fraction=1.0)
+        library.save_result(job.entry_id, result.document.to_json(), meta)
+        self._update(job.id, status="done", stage="done", fraction=1.0)
+
+    def _run_translate(self, job: Job) -> None:
+        # Re-gloss an existing entry into job.gloss, reusing its transcript + timings.
+        self._update(job.id, status="running", stage="enrich", fraction=None)
+
+        def on_progress(done: int, total: int) -> None:
+            self._update(job.id, stage="enrich", fraction=(done / total) if total else 1.0)
+
+        stored = library.read_result(job.entry_id)
+        if stored is None:
+            self._update(job.id, status="error", error="Eintrag nicht gefunden.")
+            return
+        updated = self._translate(
+            json.loads(stored), lang=job.gloss, gloss_model=job.model, on_progress=on_progress
+        )
+        meta = library.read_meta(job.entry_id) or {}
+        langs = set(meta.get("langs") or [])
+        if job.gloss:
+            langs.add(job.gloss)
+        meta["langs"] = sorted(langs)
+        meta["glossLang"] = job.gloss
+        meta["mode"] = "enriched"
+        meta.setdefault("title", job.title)
+        meta.setdefault("createdAt", job.created_at)
+        library.save_result(job.entry_id, updated, meta)
+        self._update(job.id, status="done", stage="done", fraction=1.0)

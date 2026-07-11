@@ -143,6 +143,10 @@ class _Handler(BaseHTTPRequestHandler):
         if parsed.path == "/jobs":
             self._submit_job(parsed)
             return
+        parts = [p for p in parsed.path.split("/") if p]
+        if len(parts) == 3 and parts[0] == "library" and parts[2] == "translate":
+            self._translate_entry(parts[1], parse_qs(parsed.query))
+            return
         if parsed.path != "/process":
             self.send_error(404)
             return
@@ -246,6 +250,25 @@ class _Handler(BaseHTTPRequestHandler):
             model=model,
             write_audio=write_audio,
         )
+        self._json({"jobId": job_id})
+
+    def _translate_entry(self, entry_id: str, query: dict) -> None:
+        if not library.is_valid_id(entry_id) or library.read_result(entry_id) is None:
+            self.send_error(404)
+            return
+        if not enrichment.is_available():
+            self._json(
+                {
+                    "error": "enrich_unavailable",
+                    "message": "Übersetzen braucht das razbiram-nlp-Plugin "
+                    "(pip install razbiram-listen[enrich]).",
+                },
+                status=409,
+            )
+            return
+        lang = (query.get("lang", ["en"])[0]) or "en"
+        model = query.get("model", [None])[0] or None
+        job_id = self.jobs.submit_translate(entry_id, lang=lang, model=model)
         self._json({"jobId": job_id})
 
     def _serve_result(self, entry_id: str) -> None:
