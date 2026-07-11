@@ -1,10 +1,20 @@
 import "./styles.css";
+import {
+  audioUrl as libraryAudioUrl,
+  deleteAudio,
+  deleteEntry,
+  fetchJobs,
+  fetchLibrary,
+  fetchResult,
+  submitJob,
+} from "./api";
 import { type KaraokeHandle, renderKaraoke } from "./karaoke";
 import { ListenError, parseListenDocument } from "./loadListen";
 import { Player } from "./player";
+import { hasActive, newlyDone, renderJobs, renderLibrary } from "./queue";
 import { SeedBasket, toCrowdAnkiDeck, toRazbiramSeed } from "./seed";
 import { activeSentenceIndex } from "./sync";
-import type { ListenDocument, SegmentTiming } from "./types";
+import type { Job, ListenDocument, SegmentTiming } from "./types";
 
 function el<T extends HTMLElement>(id: string): T {
   const node = document.getElementById(id);
@@ -39,6 +49,9 @@ const studioEnrichHint = el<HTMLParagraphElement>("studio-enrich-hint");
 const studioProgress = el<HTMLElement>("studio-progress");
 const studioProgressLabel = el<HTMLElement>("studio-progress-label");
 const studioProgressBar = el<HTMLElement>("studio-progress-bar");
+const queuePanel = el<HTMLElement>("queue");
+const queueJobsEl = el<HTMLElement>("queue-jobs");
+const queueLibraryEl = el<HTMLElement>("queue-library");
 
 const player = new Player();
 const basket = new SeedBasket();
@@ -75,11 +88,16 @@ async function handleDoc(file: File): Promise<void> {
 }
 
 function handleAudio(file: File): void {
-  if (audioUrl) URL.revokeObjectURL(audioUrl);
-  audioUrl = URL.createObjectURL(file);
-  audioName = file.name;
-  player.load(audioUrl);
+  setAudioSource(URL.createObjectURL(file), file.name);
   refreshLoadState();
+}
+
+/** Point the player at a new source, revoking a previous object URL (not server URLs). */
+function setAudioSource(url: string, name: string): void {
+  if (audioUrl && audioUrl.startsWith("blob:")) URL.revokeObjectURL(audioUrl);
+  audioUrl = url;
+  audioName = name;
+  player.load(url);
 }
 
 function route(file: File): void {
@@ -337,94 +355,93 @@ async function initStudioMode(): Promise<void> {
     const file = e.dataTransfer?.files?.[0];
     if (file) void studioProcess(file);
   });
+
+  // Show the queue/library sidebar and load whatever is already saved.
+  queuePanel.hidden = false;
+  await refreshLibrary();
+  await refreshQueue();
+  kickPolling();
 }
 
+// Submit a drop as a background job; it appears in the queue and auto-opens when
+// done. The dropzone stays, so more files can be queued (they run in parallel).
 async function studioProcess(file: File): Promise<void> {
-  if (audioUrl) URL.revokeObjectURL(audioUrl);
-  audioUrl = URL.createObjectURL(file);
-  audioName = file.name;
-  player.load(audioUrl);
-
-  showProgress("Starte …", 0.02, false);
-  const choice = studioGloss.value; // "none" → core mode; "de"/"en" → enrich
+  const choice = studioGloss.value; // "none" → core; "de"/"en" → enrich
   const wantEnrich = choice !== "none";
-  const params = new URLSearchParams({ enrich: wantEnrich ? "1" : "0" });
-  if (wantEnrich) {
-    params.set("gloss", choice);
-    if (glossModel) params.set("model", glossModel);
-  }
-  let resp: Response;
+  showProgress("Lädt in die Warteschlange …", 0.06, false, true);
   try {
-    resp = await fetch(`/process?${params.toString()}`, {
-      method: "POST",
-      headers: { "X-Filename": file.name },
-      body: file,
+    const jobId = await submitJob(file, {
+      enrich: wantEnrich,
+      gloss: wantEnrich ? choice : undefined,
+      model: glossModel,
     });
-  } catch {
-    showProgress("Verbindung zum lokalen Server fehlgeschlagen.", 1, true);
-    return;
+    autoOpenId = jobId; // open this one automatically once it finishes
+    studioProgress.hidden = true;
+    await refreshQueue();
+    kickPolling();
+  } catch (err) {
+    showProgress(err instanceof Error ? err.message : "Fehler beim Absenden.", 1, true);
   }
-  if (!resp.ok || !resp.body) {
-    showProgress(`Serverfehler (${resp.status}).`, 1, true);
-    return;
-  }
+}
 
-  const reader = resp.body.getReader();
-  const decoder = new TextDecoder();
-  let buffer = "";
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let nl: number;
-    while ((nl = buffer.indexOf("\n")) >= 0) {
-      const line = buffer.slice(0, nl).trim();
-      buffer = buffer.slice(nl + 1);
-      if (line) handleStudioEvent(JSON.parse(line));
+// --- queue polling + library -------------------------------------------------
+let polling = false;
+let prevJobs: Job[] = [];
+let autoOpenId: string | null = null;
+
+async function refreshQueue(): Promise<boolean> {
+  const jobs = await fetchJobs();
+  renderJobs(queueJobsEl, jobs);
+  const done = newlyDone(prevJobs, jobs);
+  prevJobs = jobs;
+  if (done.length > 0) {
+    await refreshLibrary();
+    if (autoOpenId && done.includes(autoOpenId)) {
+      const id = autoOpenId;
+      autoOpenId = null;
+      void openLibraryItem(id);
     }
   }
+  return hasActive(jobs);
 }
 
-function handleStudioEvent(ev: {
-  stage: string;
-  fraction?: number | null;
-  message?: string;
-  document?: ListenDocument;
-}): void {
-  switch (ev.stage) {
-    case "transcribe":
-      showProgress(`Transkribiere … ${Math.round((ev.fraction ?? 0) * 100)}%`, (ev.fraction ?? 0) * 0.6, false);
-      break;
-    case "enrich":
-      if (ev.fraction == null) {
-        // Cheap analysis (morphology/CEFR) before glossing — no count yet.
-        showProgress("Analysiere (Morphologie & CEFR) …", 0.62, false, true);
-      } else {
-        // Honest translate progress: fraction = uncached gloss calls done / total.
-        showProgress(
-          `Übersetze … ${Math.round(ev.fraction * 100)}%`,
-          0.62 + ev.fraction * 0.32,
-          false,
-        );
-      }
-      break;
-    case "align":
-      showProgress("Richte Timings aus …", 0.96, false);
-      break;
-    case "done":
-      showProgress("Fertig", 1, false);
-      break;
-    case "result":
-      if (ev.document) {
-        doc = ev.document;
-        studioProgress.hidden = true;
-        studio.hidden = true;
-        start();
-      }
-      break;
-    case "error":
-      showProgress(`Fehler: ${ev.message ?? "unbekannt"}`, 1, true);
-      break;
+// Poll /jobs while anything is active; stop when the queue is idle (localhost, cheap).
+function kickPolling(): void {
+  if (polling) return;
+  polling = true;
+  const tick = async (): Promise<void> => {
+    const active = await refreshQueue();
+    if (active) window.setTimeout(() => void tick(), 1200);
+    else polling = false;
+  };
+  void tick();
+}
+
+async function refreshLibrary(): Promise<void> {
+  const entries = await fetchLibrary();
+  renderLibrary(queueLibraryEl, entries, {
+    onOpen: (id) => void openLibraryItem(id),
+    onDelete: async (id) => {
+      await deleteEntry(id);
+      await refreshLibrary();
+    },
+    onRemoveAudio: async (id) => {
+      await deleteAudio(id);
+      await refreshLibrary();
+    },
+  });
+}
+
+// Open a saved entry: load its transcript + point the player at the range-served
+// audio (seeking works on large files), then show the reader below the dropzone.
+async function openLibraryItem(id: string): Promise<void> {
+  try {
+    const loaded = await fetchResult(id);
+    setAudioSource(libraryAudioUrl(id), loaded.audioRef?.filename ?? "audio");
+    doc = loaded;
+    refreshLoadState();
+  } catch (err) {
+    note(err instanceof Error ? err.message : "Konnte den Eintrag nicht öffnen.", true);
   }
 }
 

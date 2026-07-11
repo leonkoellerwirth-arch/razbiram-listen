@@ -33,6 +33,7 @@
       <button id="theme" class="rz-btn" type="button" aria-label="Toggle colour scheme">☾ Dark</button>
     </header>
 
+    <div class="rz-layout">
     <main class="rz-main">
       <section class="rz-card rz-studio" id="studio" hidden>
         <h1 class="rz-h1">Listen to Bulgarian, word by word</h1>
@@ -104,6 +105,14 @@
         </span>
       </section>
     </main>
+
+      <aside class="rz-queue" id="queue" hidden>
+        <h2 class="rz-queue-h">Warteschlange &amp; Bibliothek</h2>
+        <div id="queue-jobs" class="rz-queue-jobs"></div>
+        <h3 class="rz-queue-sub">Bibliothek</h3>
+        <div id="queue-library" class="rz-queue-library"></div>
+      </aside>
+    </div>
 
     <footer class="rz-footer rz-faint">
       Part of the razbiram ecosystem · razbiram-listen · local-first, no telemetry · visual identity © razbiram.com

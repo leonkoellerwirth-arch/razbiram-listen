@@ -64,3 +64,29 @@ export interface ListenDocument {
   audioRef?: AudioRef | null;
   timings?: ListenTimings | null;
 }
+
+// A background processing job, as reported by GET /jobs.
+export interface Job {
+  id: string;
+  filename: string;
+  title: string;
+  status: "queued" | "running" | "done" | "error";
+  stage?: string | null;
+  fraction?: number | null;
+  error?: string | null;
+  createdAt: string;
+  mode: "core" | "enriched";
+}
+
+// A saved entry in the local library, as reported by GET /library.
+export interface LibraryEntry {
+  id: string;
+  title: string;
+  filename: string;
+  durationS?: number | null;
+  mode: "core" | "enriched";
+  glossLang?: string | null;
+  coverage?: number | null;
+  createdAt: string;
+  hasAudio: boolean;
+}
