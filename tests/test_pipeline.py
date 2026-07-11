@@ -110,6 +110,19 @@ def test_gloss_lang_is_passed_through_to_enrich() -> None:
     assert seen["gloss_lang"] == "de"
 
 
+def test_available_stages_reflects_environment() -> None:
+    from importlib.util import find_spec
+
+    from razbiram_listen.pipeline import _available_stages
+
+    base = _available_stages(None)
+    assert {"segmentation", "difficulty", "vocab"} <= base
+    assert "gloss" not in base
+    assert "gloss" in _available_stages("de")
+    # Morphology is offered iff the optional classla extra is installed.
+    assert ("morphology" in base) == (find_spec("classla") is not None)
+
+
 def _write_tone_wav(path: Path, *, seconds: float = 1.0, rate: int = 16000) -> None:
     with wave.open(str(path), "w") as wav:
         wav.setnchannels(1)

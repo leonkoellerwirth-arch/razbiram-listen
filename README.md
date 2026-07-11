@@ -64,6 +64,24 @@ hosts are blocked and platform pages are never resolved to media. That is by
 design (see "Why BYO-audio"): razbiram-listen only touches audio that is yours or
 openly licensed.
 
+### Glosses & CEFR — fully local
+
+Transcription and alignment are always offline. Glosses (`--gloss de`/`en`) use a
+**local LLM via [Ollama](https://ollama.com)** — no cloud. Pick the model with
+`--gloss-model` (e.g. a multilingual one like `aya-expanse:8b`):
+
+```bash
+razbiram-listen process --audio ep.mp3 --gloss de --gloss-model aya-expanse:8b --out ep.listen.json
+```
+
+Stages degrade gracefully to what your install has:
+
+- **Morphology** (lemma / part of speech, and sharper CEFR) needs the optional
+  `classla` extra: `pip install classla` (downloads a Bulgarian model once).
+- **Difficulty / vocab** (document + per-word CEFR bands) need the hub's data files;
+  set `RAZBIRAM_NLP_DATA_DIR` / `RAZBIRAM_NLP_CONFIG_DIR` to a razbiram-nlp checkout.
+- Without either, you still get sentence-level translations.
+
 ## What it produces
 
 A single `.listen.json` — an `EnrichedDocument` (imported un-forked from the hub)

@@ -46,6 +46,7 @@ def process_audio(
     audio: str | Path,
     *,
     gloss_lang: str | None = None,
+    gloss_model: str | None = None,
     model_size: str = DEFAULT_MODEL,
     language: str = "bg",
     transcriber: Transcriber | None = None,
@@ -60,13 +61,17 @@ def process_audio(
         Path to a local audio file (BYO-audio; never uploaded).
     gloss_lang:
         Gloss target language (``"de"``/``"en"``) or ``None`` for no glosses.
+    gloss_model:
+        Local Ollama model for glossing (e.g. ``"aya-expanse:8b"``); ``None`` uses
+        the hub default. Only used when ``gloss_lang`` is set and no ``enrich`` is
+        injected.
     model_size:
         Whisper model when no ``transcriber`` is injected.
     transcriber, enrich:
         Injectable seams for testing; real ones are built lazily when omitted.
     """
     transcriber = transcriber or Transcriber(model_size)
-    enrich = enrich or _default_enrich
+    enrich = enrich or _make_enrich(gloss_model)
 
     transcription: Transcription = transcriber.transcribe(
         audio, language=language, show_progress=show_progress
@@ -84,8 +89,50 @@ def process_audio(
     )
 
 
-def _default_enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
-    """Delegate to the hub. Imported lazily so plain imports stay light."""
+def _make_enrich(gloss_model: str | None) -> EnrichFn:
+    """Build the default enrich function, bound to a chosen local gloss model."""
+
+    def _enrich(text: str, *, gloss_lang: str | None) -> EnrichedDocument:
+        return _default_enrich(text, gloss_lang=gloss_lang, gloss_model=gloss_model)
+
+    return _enrich
+
+
+def _default_enrich(
+    text: str, *, gloss_lang: str | None, gloss_model: str | None = None
+) -> EnrichedDocument:
+    """Delegate to the hub, selecting the stages the local install can actually run.
+
+    Morphology needs the optional ``classla`` extra; difficulty/vocab need the hub's
+    ``data/``+``config/`` (set ``RAZBIRAM_NLP_DATA_DIR``/``RAZBIRAM_NLP_CONFIG_DIR``
+    or install a hub checkout). Missing pieces degrade gracefully rather than crash.
+    Imported lazily so plain imports stay light.
+    """
     from razbiram_nlp import enrich_text
 
-    return enrich_text(text, gloss_lang=gloss_lang)
+    provider = None
+    if gloss_lang is not None and gloss_model:
+        from razbiram_nlp.gloss import OllamaGlossProvider
+
+        provider = OllamaGlossProvider(model=gloss_model)
+
+    stages = _available_stages(gloss_lang)
+    try:
+        return enrich_text(text, gloss_lang=gloss_lang, stages=stages, gloss_provider=provider)
+    except FileNotFoundError:
+        # The hub's difficulty/vocab resources aren't available in a bare install;
+        # degrade to segmentation (+ morphology) + gloss (sentence glosses survive).
+        reduced = stages - {"difficulty", "vocab"}
+        return enrich_text(text, gloss_lang=gloss_lang, stages=reduced, gloss_provider=provider)
+
+
+def _available_stages(gloss_lang: str | None) -> set[str]:
+    """The stages this install can run: morphology only if ``classla`` is present."""
+    from importlib.util import find_spec
+
+    stages = {"segmentation", "difficulty", "vocab"}
+    if find_spec("classla") is not None:
+        stages.add("morphology")
+    if gloss_lang is not None:
+        stages.add("gloss")
+    return stages

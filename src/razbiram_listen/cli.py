@@ -60,6 +60,12 @@ def main() -> None:
     help="Gloss language: 'de', 'en', or omit for no glosses.",
 )
 @click.option(
+    "--gloss-model",
+    "gloss_model",
+    default=None,
+    help="Local Ollama model for glosses, e.g. 'aya-expanse:8b'. Omit for the hub default.",
+)
+@click.option(
     "--model", "model", default=DEFAULT_MODEL, show_default=True, help="Whisper model size."
 )
 @click.option("--language", "language", default="bg", show_default=True, help="Spoken language.")
@@ -69,6 +75,7 @@ def process(
     episode: int | None,
     out: Path,
     gloss: str | None,
+    gloss_model: str | None,
     model: str,
     language: str,
 ) -> None:
@@ -91,7 +98,9 @@ def process(
     assert audio is not None
     console.print(f"[bold]Processing[/bold] {audio.name} (model: {model}) …")
 
-    result = process_audio(audio, gloss_lang=gloss, model_size=model, language=language)
+    result = process_audio(
+        audio, gloss_lang=gloss, gloss_model=gloss_model, model_size=model, language=language
+    )
 
     out.write_text(result.document.to_json(), encoding="utf-8")
 
