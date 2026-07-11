@@ -57,13 +57,12 @@ shared `EnrichedDocument` contract, extended with audio timings.
   when the plugin is installed). Enrichment is opt-in everywhere (studio defaults to
   the synced-transcript core) and reports honest "sentence X of N" progress via the
   hub's `plan_glosses` + a wrapped provider. This is a **mirror, not a fork** — it
-  exists only until the hub publishes a JSON Schema. Filed as hub **ADR 005**
-  (draft: `docs/hub-adr-005-nlp-optional-plugin.md`). Refines D2 (the pin now lives on
-  the `[enrich]` extra).
+  exists only until the hub publishes a JSON Schema. Filed in the hub as **ADR 005**
+  (`razbiram-nlp/docs/adr/005-nlp-optional-plugin-for-listen.md`; local origin copy:
+  `docs/hub-adr-005-nlp-optional-plugin.md`). Refines D2 (the pin now lives on the
+  `[enrich]` extra).
 
 ## Open ADR candidates (raise in the hub, ECOSYSTEM §6)
-- **ADR 005 (drafted) — nlp as optional enrichment plugin for listen** (see D7);
-  file `docs/hub-adr-005-nlp-optional-plugin.md` into `razbiram-nlp/docs/adr/`.
 - Hub should ship `schemas/enriched-document.vN.json` and a `schemaVersion` field
   on `EnrichedDocument` (currently neither exists). This would replace listen's
   hand-maintained `contract.py` copy with a generated/validated one (closes D7's cost).

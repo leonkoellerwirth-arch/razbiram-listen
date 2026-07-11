@@ -1,10 +1,10 @@
-# ADR 005 (Vorschlag) — razbiram-nlp als optionales Enrichment-Plugin für razbiram-listen
+# ADR 005 — razbiram-nlp als optionales Enrichment-Plugin für razbiram-listen
 
-> **Ablageort-Ziel:** `razbiram-nlp/docs/adr/005-nlp-optional-plugin.md`.
-> Dieser Entwurf lebt versioniert in `razbiram-listen/docs/`, bis er im Hub
-> eingereicht/committet ist (ECOSYSTEM §6). Autorisiert vom Eigentümer (2026-07-11).
+> **✓ EINGEREICHT (2026-07-11):** Die kanonische, akzeptierte Fassung liegt im Hub:
+> `razbiram-nlp/docs/adr/005-nlp-optional-plugin-for-listen.md`. Dieser Entwurf
+> bleibt als lokaler Beleg der listen-Herkunft (BIBLE D7).
 
-**Status:** vorgeschlagen · **Datum:** 2026-07-11
+**Status:** akzeptiert (im Hub) · **Datum:** 2026-07-11
 **Bezug:** ECOSYSTEM §2 (EnrichedDocument-Vertrag), §3 (Code-Wiederverwendung) · ADR 001 (Familien-Vertrag) · ADR 003 (BYO-Prinzip)
 
 ## Kontext

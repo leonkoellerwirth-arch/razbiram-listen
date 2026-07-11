@@ -18,8 +18,8 @@ is the open step).** Gate green (ruff/format, pytest core+enrich, viewer build+t
   Enrichment is opt-in (CLI `--enrich`, studio default "nur Transkript") with honest
   **"sentence X of N"** progress (verified 0/8→8/8 against Ollama). See **BIBLE D7**
   + hub **ADR 005** draft (`docs/hub-adr-005-nlp-optional-plugin.md`).
-- **Open now:** cut the **v0.2.0 tag + GitHub release** (Phase 4 finish). Then file
-  ADR 005 into `razbiram-nlp/docs/adr/` (hub push — owner decides).
+- **Done since:** v0.2.0 tag + GitHub release cut; **hub ADR 005 filed & pushed**
+  (`razbiram-nlp/docs/adr/005-nlp-optional-plugin-for-listen.md`, hub `618e0f0`).
 - **Try it:** `razbiram-listen studio` → drop audio → instant synced transcript;
   switch the dropdown to Deutsch for glosses/CEFR (needs `[enrich]` + Ollama).
 - **Next milestone — M7 (Politur):** own recorded Bulgarian example under
