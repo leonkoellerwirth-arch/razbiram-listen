@@ -6,9 +6,17 @@ Session-to-session hand-offs. Public — no business internals. Newest first.
 
 ## ▶ Resume here (current state)
 
-**Released v0.1.0 → v0.3.0. Since then, committed on `main` but NOT yet tagged
-(pending owner's visual approval): v0.4.0 (translate as a switchable layer) and the
-big reader **redesign** + job **cancel**.** Gate green; studio server stopped.
+**Released v0.1.0 → v0.5.0 (all tagged; `pyproject` at 0.5.0, HEAD = the 0.5.0 release
+commit).** v0.4.0 (translate as a switchable layer) and v0.5.0 (reader **redesign** +
+job **cancel** + English UI) are shipped — the owner's visual approval that once blocked
+them is resolved. Gate green; no background processes of ours running. **Next: M7 (Politur)** —
+own example audio + transcript-edit mode + selectable Whisper model.
+
+> **Session 6 (2026-07-12) was a detour into the sibling repo `studywithme-bg`
+> (razbiram.com), NOT razbiram-listen — this repo is unchanged.** Work there: schule moved
+> to a same-origin route `razbiram.com/schule` (branch `fix/schule-same-origin-path`, 2
+> commits, **unpushed**) + a new `mcq-deck` skill + a TTS wrong-voice diagnosis. Details in
+> persistent memory `studywithme-schule-mcq`. Nothing here depends on it.
 
 - **Redesign (BIBLE D10):** flat list → fixed **three-zone shell** (topbar / content
   [spine + spotlight reader] / persistent player), slide-over library drawer, ONE
