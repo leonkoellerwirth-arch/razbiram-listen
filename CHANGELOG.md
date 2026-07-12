@@ -6,6 +6,11 @@ SemVer. The `.listen.json` document shape is versioned separately via
 
 ## [Unreleased]
 
+## [0.5.0] — 2026-07-12
+
+The reader becomes a long-form reading shell, jobs are cancellable, and the studio
+speaks English — the first release meant to be shown publicly.
+
 ### Added
 - **Reader redesign for long content (three-zone shell).** The studio is now a
   fixed `topbar / content / player` shell that never scrolls away: a left **spine**

@@ -29,6 +29,15 @@ to seed a vocabulary card. That core runs on its own. Install the optional
 (`pip install "razbiram-listen[enrich]"`) and it lights up with **glosses, lemma,
 part of speech, and heuristic CEFR bands** — the two tools simply help each other.
 
+<p align="center">
+  <img src="docs/img/word-popover.png" width="440"
+    alt="Hovering the Bulgarian word време opens a popover: the lemma време, part of speech NOUN, an A2 CEFR badge, the gloss 'weather', and a '+ collect' button." />
+</p>
+<p align="center">
+  <em>Hover any word for its lemma, part of speech, a heuristic CEFR band and a
+  gloss — one click collects it as a vocabulary card.</em>
+</p>
+
 ## Why BYO-audio
 
 Lyrics and streaming transcripts are copyright-protected content, and fetching
@@ -184,3 +193,4 @@ not affiliated with them. Licensed under the **MIT License** — see [LICENSE](L
 
 Built by [Leon Köllerwirth Hlihel](https://leon-koellerwirth.com) — AI governance &
 agentic engineering in regulated environments.
+[Website](https://leon-koellerwirth.com) · [LinkedIn](https://www.linkedin.com/in/leon-k%C3%B6llerwirth-hlihel-642506197/)
