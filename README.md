@@ -193,4 +193,4 @@ not affiliated with them. Licensed under the **MIT License** — see [LICENSE](L
 
 Built by [Leon Köllerwirth Hlihel](https://leon-koellerwirth.com) — AI governance &
 agentic engineering in regulated environments.
-[Website](https://leon-koellerwirth.com) · [LinkedIn](https://www.linkedin.com/in/leon-k%C3%B6llerwirth-hlihel-642506197/)
+[Website](https://leon-koellerwirth.com) · [LinkedIn](https://www.linkedin.com/in/leon-k%C3%B6llerwirth-642506197/)
